@@ -1,2 +1,6 @@
-# rag-enhanced-searching
-It shows how to enhance searching in RAG
+# 한영 동시검색 및 구글 검색을 활용한 향상된 RAG 구현하기
+
+LLM에 질문시 RAG를 통해 사전 학습되지 않은 정보들을 검색할 수 있습니다. 만약 한글로 검색한다면 RAG의 Knowledge Store에 있는 한글 문서들을 검색하게 됩니다. 따라서 다수의 영어를 포한한 다른 언어를 동시에 검색하는 것이 필요합니다.
+
+RAG의 Knowledge Store에 없는 질문을 한다면 LLM은 모른다고 답변하게 됩니다. 하지만, 이 경우에 인터넷 검색을 통해 Knowledge Stroe의 부족한 면을 채울수 있다면 검색 성능을 향상 시킬수 있습니다.
+
