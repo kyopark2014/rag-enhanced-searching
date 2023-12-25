@@ -59,6 +59,106 @@ def traslation_to_korean(llm, msg):
     return msg.replace("\n"," ")
 ```
 
+## 한영 Dual Search
+
+revised question을 먼저 영어로 변환하여 Mult-RAG를 통해 조회합니다. 영어와 한글 문서를 모두 가지고 있는 Knowlege Store는 한국어 문서도 관련 문서로 제공할 수 있으므로, 영어로된 관련된 문서(Relevant Document)를 찾아서 한국어로 변환합니다. 이후, 한국어 검색으로 얻어진 결과에 추가합니다. 이렇게 되면 한국어로 검색했을때보다 2배의 관련된 문서들을 가지게 됩니다. 
+
+```python
+translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
+
+relevant_docs_using_translated_question = get_relevant_documents_using_parallel_processing(question=translated_revised_question, top_k=top_k)
+
+docs_translation_required = []
+if len(relevant_docs_using_translated_question) >= 1:
+    for i, doc in enumerate(relevant_docs_using_translated_question):
+        if isKorean(doc) == False:
+            docs_translation_required.append(doc)
+        else:
+            relevant_docs.append(doc)
+translated_docs = translate_relevant_documents_using_parallel_processing(docs_translation_required)
+
+for i, doc in enumerate(translated_docs):
+  relevant_docs.append(doc)
+
+def translate_relevant_documents_using_parallel_processing(docs):
+    selected_LLM = 0
+    relevant_docs = []    
+    processes = []
+    parent_connections = []
+    for doc in docs:
+        parent_conn, child_conn = Pipe()
+        parent_connections.append(parent_conn)
+            
+        llm = get_llm(profile_of_LLMs, selected_LLM)
+        process = Process(target=translate_process_from_relevent_doc, args=(child_conn, llm, doc))            
+        processes.append(process)
+
+        selected_LLM = selected_LLM + 1
+        if selected_LLM == len(profile_of_LLMs):
+            selected_LLM = 0
+
+    for process in processes:
+        process.start()
+            
+    for parent_conn in parent_connections:
+        doc = parent_conn.recv()
+        relevant_docs.append(doc)    
+
+    for process in processes:
+        process.join()
+    
+    return relevant_docs
+```
+
+이제 관련문서들중에 사용할 문서들을 추출합니다.
+
+```python
+selected_relevant_docs = []
+if len(relevant_docs)>=1:
+    selected_relevant_docs = priority_search(revised_question, relevant_docs, bedrock_embeddings)
+
+def priority_search(query, relevant_docs, bedrock_embeddings):
+    excerpts = []
+    for i, doc in enumerate(relevant_docs):
+        if doc['metadata']['translated_excerpt']:
+            content = doc['metadata']['translated_excerpt']
+        else:
+            content = doc['metadata']['excerpt']
+        
+        excerpts.append(
+            Document(
+                page_content=content,
+                metadata={
+                    'name': doc['metadata']['title'],
+                    'order':i,
+                }
+            )
+        )  
+
+    embeddings = bedrock_embeddings
+    vectorstore_confidence = FAISS.from_documents(
+        excerpts,  # documents
+        embeddings  # embeddings
+    )            
+    rel_documents = vectorstore_confidence.similarity_search_with_score(
+        query=query,
+        k=top_k
+    )
+
+    docs = []
+    for i, document in enumerate(rel_documents):
+
+        order = document[0].metadata['order']
+        name = document[0].metadata['name']
+        assessed_score = document[1]
+
+        relevant_docs[order]['assessed_score'] = int(assessed_score)
+
+        if assessed_score < 200:
+            docs.append(relevant_docs[order])    
+
+    return docs
+```            
 
 ### 영어로 얻어진 문장을 한국어로 번역
 
