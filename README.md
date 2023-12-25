@@ -58,3 +58,26 @@ def traslation_to_korean(llm, msg):
     
     return msg.replace("\n"," ")
 ```
+
+
+### 영어로 얻어진 문장을 한국어로 번역
+
+```python
+def traslation_to_english(llm, msg):
+    PROMPT = """\n\nHuman: 다음의 <article>를 English로 번역하세요. 머리말은 건너뛰고 본론으로 바로 들어가주세요. 또한 결과는 <result> tag를 붙여주세요.
+
+    <article>
+    {input}
+    </article>
+                        
+    Assistant:"""
+
+    try: 
+        translated_msg = llm(PROMPT.format(input=msg))
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)        
+        raise Exception ("Not able to translate the message")
+    
+    return translated_msg[translated_msg.find('<result>')+9:len(translated_msg)-10]
+```
