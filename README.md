@@ -14,6 +14,49 @@ RAG의 Knowledge Store에 없는 질문을 한다면 LLM은 모른다고 답변�
 
 이를 위해서는 영어결과를 한국어로 번역할 수 있어야 하며, 한국어 질문을 영어로 번역해서 다시 질의하여 얻어진 결과를 하나로 정리해서 제공할 수 있어야 합니다. 결과적으로 관련 문서의 증가 및 추가적인 번역작업으로 전체적인 지연시간이 증가할 수 있습니다. 여기서는 LLM을 이용한 한영 번역, 한국어와 영어를 사용한 RAG 검색 및 통합된 결과를 얻는 방법과 더불어, 늘어난 지연시간을 단축할 수 있는 방법을 설명합니다.
 
+### Google Search API를 이용한 검색기능
+
+Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. 상세한 내용은 [Google Search API](./GoogleSearchAPI.md)에서 확인합니다. 여기서, assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다.
+
+```python
+from googleapiclient.discovery import build
+
+google_api_key = os.environ.get('google_api_key')
+google_cse_id = os.environ.get('google_cse_id')
+
+api_key = google_api_key
+cse_id = google_cse_id
+
+relevant_docs = []
+try:
+    service = build("customsearch", "v1", developerKey = api_key)
+    result = service.cse().list(q = revised_question, cx = cse_id).execute()
+    print('google search result: ', result)
+
+    if "items" in result:
+        for item in result['items']:
+            api_type = "google api"
+            excerpt = item['snippet']
+            uri = item['link']
+            title = item['title']
+            confidence = ""
+            assessed_score = ""
+
+            doc_info = {
+                "rag_type": 'search',
+                "api_type": api_type,
+                "confidence": confidence,
+                "metadata": {
+                    "source": uri,
+                    "title": title,
+                    "excerpt": excerpt,                                
+                },
+                "assessed_score": assessed_score,
+            }
+        relevant_docs.append(doc_info)
+```
+
+
 ### 영어로 질문시 한글 결과를 같이 보여주기
 
 영어로 질의시 영어 문서들을 조회할 수 있습니다. 결과가 한국어/영어인것을 확인한 후에 한국어가 아니라면 LLM에 문의하여 아래와 같이 한국어로 본역한 후에 결과에 추가하여 같이 보여줍니다.
