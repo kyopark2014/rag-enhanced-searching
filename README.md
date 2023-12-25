@@ -68,6 +68,33 @@ translated_revised_question = traslation_to_english(llm=llm, msg=revised_questio
 
 relevant_docs_using_translated_question = get_relevant_documents_using_parallel_processing(question=translated_revised_question, top_k=top_k)
 
+relevant_docs_using_translated_question = []
+for reg in capabilities:            
+    if reg == 'kendra':
+        rel_docs = retrieve_from_kendra(query=translated_revised_question, top_k=top_k)      
+        print('rel_docs (kendra): '+json.dumps(rel_docs))
+    else:
+        rel_docs = retrieve_from_vectorstore(query=translated_revised_question, top_k=top_k, rag_type=reg)
+        print(f'rel_docs ({reg}): '+json.dumps(rel_docs))
+
+    if(len(rel_docs)>=1):
+        for doc in rel_docs:
+            relevant_docs_using_translated_question.append(doc)    
+
+if len(relevant_docs_using_translated_question)>=1:
+    for i, doc in enumerate(relevant_docs_using_translated_question):
+        if isKorean(doc)==False:
+            translated_excerpt = traslation_to_korean(llm=llm, msg=doc['metadata']['excerpt'])
+            doc['metadata']['translated_excerpt'] = translated_excerpt
+            relevant_docs.append(doc)
+        else:
+            print(f"original {i}: {doc}")
+            relevant_docs.append(doc)
+```
+
+그런데, 영어로 번역된 질문으로 조회한 Relevant Document의 숫자만큰 한국어로 번역이 필요하므로 프로세싱 시간이 관련된 문서수만큼 증가하는 이슈가 발생합니다. 이는 사용성을 저하 시키므로 개선이 필요합니다. 여기에서는 Multi-Region LLM을 활용하여 4개의 리전의 LLM을 활용하여 RAG 문서를 한국어로 번역하는 시간을 줄입니다. 아래와 같이 영어로 질문을 한 후에 얻어진 문서들에서 번역이 필요한 리스트를 추출합니다. 이후 multi thread를 이용하여 각 리전으로 LLM에 번역을 요청합니다. 
+
+```python
 docs_translation_required = []
 if len(relevant_docs_using_translated_question) >= 1:
     for i, doc in enumerate(relevant_docs_using_translated_question):
@@ -110,7 +137,9 @@ def translate_relevant_documents_using_parallel_processing(docs):
     return relevant_docs
 ```
 
-이제 관련문서들중에 사용할 문서들을 추출합니다.
+결과적으로 4배의 속도 향상이 있었습니다. (추후 결과를 수치로 제시할것) 
+
+관련된 문장의 숫자가 늘어났으므로 context로 활용할 문서를 추출합니다. 아래의 priority_search()는 Faiss의 similarity search를 이용하여 관련문서를 reranking하는 동작을 수행합니다. 
 
 ```python
 selected_relevant_docs = []
@@ -159,6 +188,25 @@ def priority_search(query, relevant_docs, bedrock_embeddings):
 
     return docs
 ```            
+
+선택된 관련문서를 이용해 Prompt를 생성한 후에 LLM에 질의하여 영한 검색을 통한 결과를 얻을 수 있습니다.
+
+```python
+relevant_context = ""
+for document in selected_relevant_docs:
+    if document['metadata']['translated_excerpt']:
+        content = document['metadata']['translated_excerpt']
+    else:
+    content = document['metadata']['excerpt']
+
+relevant_context = relevant_context + content + "\n\n"
+print('relevant_context: ', relevant_context)
+
+stream = llm(PROMPT.format(context = relevant_context, question = revised_question))
+msg = readStreamMsg(connectionId, requestId, stream)            
+```
+
+
 
 ### 영어로 얻어진 문장을 한국어로 번역
 
