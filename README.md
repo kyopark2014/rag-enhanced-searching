@@ -25,46 +25,6 @@ RAG의 Knowledge Store에 없는 질문을 한다면 LLM은 모른다고 답변�
 
 
 
-### 영어로 질문시 한글 결과를 같이 보여주기
-
-영어로 질의시 영어 문서들을 조회할 수 있습니다. 결과가 한국어/영어인것을 확인한 후에 한국어가 아니라면 LLM에 문의하여 아래와 같이 한국어로 본역한 후에 결과에 추가하여 같이 보여줍니다.
-
-```python
-if isKorean(msg)==False:
-  translated_msg = traslation_to_korean(llm, msg)
-
-msg = msg+'\n[한국어]\n'+translated_msg
-
-def isKorean(text):
-    pattern_hangul = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')
-    word_kor = pattern_hangul.search(str(text))
-
-    if word_kor and word_kor != 'None':
-        return True
-    else:
-        return False
-
-def traslation_to_korean(llm, msg):
-    PROMPT = """\n\nHuman: Here is an article, contained in <article> tags. Translate the article to Korean. Put it in <result> tags.
-            
-    <article>
-    {input}
-    </article>
-                        
-    Assistant:"""
-
-    try: 
-        translated_msg = llm(PROMPT.format(input=msg))
-    except Exception:
-        err_msg = traceback.format_exc()
-        print('error message: ', err_msg)        
-        raise Exception ("Not able to translate the message")
-    
-    msg = translated_msg[translated_msg.find('<result>')+9:len(translated_msg)-10]
-    
-    return msg.replace("\n"," ")
-```
-
 ## 한영 Dual Search
 
 revised question을 먼저 영어로 변환하여 Mult-RAG를 통해 조회합니다. 영어와 한글 문서를 모두 가지고 있는 Knowlege Store는 한국어 문서도 관련 문서로 제공할 수 있으므로, 영어로된 관련된 문서(Relevant Document)를 찾아서 한국어로 변환합니다. 이후, 한국어 검색으로 얻어진 결과에 추가합니다. 이렇게 되면 한국어로 검색했을때보다 2배의 관련된 문서들을 가지게 됩니다. 
@@ -276,5 +236,46 @@ try:
                 "assessed_score": assessed_score,
             }
         relevant_docs.append(doc_info)
+```
+
+
+### 영어로 질문시 한글 결과를 같이 보여주기
+
+영어로 질의시 영어 문서들을 조회할 수 있습니다. 결과가 한국어/영어인것을 확인한 후에 한국어가 아니라면 LLM에 문의하여 아래와 같이 한국어로 본역한 후에 결과에 추가하여 같이 보여줍니다.
+
+```python
+if isKorean(msg)==False:
+  translated_msg = traslation_to_korean(llm, msg)
+
+msg = msg+'\n[한국어]\n'+translated_msg
+
+def isKorean(text):
+    pattern_hangul = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')
+    word_kor = pattern_hangul.search(str(text))
+
+    if word_kor and word_kor != 'None':
+        return True
+    else:
+        return False
+
+def traslation_to_korean(llm, msg):
+    PROMPT = """\n\nHuman: Here is an article, contained in <article> tags. Translate the article to Korean. Put it in <result> tags.
+            
+    <article>
+    {input}
+    </article>
+                        
+    Assistant:"""
+
+    try: 
+        translated_msg = llm(PROMPT.format(input=msg))
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)        
+        raise Exception ("Not able to translate the message")
+    
+    msg = translated_msg[translated_msg.find('<result>')+9:len(translated_msg)-10]
+    
+    return msg.replace("\n"," ")
 ```
 
