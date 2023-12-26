@@ -1030,7 +1030,7 @@ def extract_relevant_doc_for_kendra(query_id, api_type, query_result):
             }
     return doc_info
 
-def get_reference(docs, rag_type, path, doc_prefix):
+def get_reference(docs, path, doc_prefix):
     reference = "\n\nFrom\n"
     for i, doc in enumerate(docs):
         if doc['metadata']['translated_excerpt']:
@@ -1237,7 +1237,7 @@ def translate_relevant_documents_using_parallel_processing(docs):
     #print('relevant_docs: ', relevant_docs)
     return relevant_docs
 
-def get_answer_using_RAG(llm, text, conv_type, connectionId, requestId, bedrock_embeddings, rag_type):
+def get_answer_using_RAG(llm, text, conv_type, connectionId, requestId, bedrock_embeddings):
     global time_for_revise, time_for_rag, time_for_inference, time_for_priority_search, number_of_relevant_docs  # for debug
     time_for_revise = time_for_rag = time_for_inference = time_for_priority_search = number_of_relevant_docs = 0
     
@@ -1358,7 +1358,7 @@ def get_answer_using_RAG(llm, text, conv_type, connectionId, requestId, bedrock_
         raise Exception ("Not able to request to LLM")    
 
     if len(selected_relevant_docs)>=1 and enableReference=='true':
-        reference = get_reference(selected_relevant_docs, rag_type, path, doc_prefix)  
+        reference = get_reference(selected_relevant_docs, path, doc_prefix)  
 
     end_time_for_inference = time.time()
     time_for_inference = end_time_for_inference - end_time_for_priority_search
@@ -1467,13 +1467,7 @@ def getResponse(connectionId, jsonBody):
     conv_type = jsonBody['conv_type']  # conversation type
     print('Conversation Type: ', conv_type)
 
-    rag_type = ""
-    if 'rag_type' in jsonBody:
-        if jsonBody['rag_type']:
-            rag_type = jsonBody['rag_type']  # RAG type
-            print('rag_type: ', rag_type)
-
-    global vectorstore_opensearch, vectorstore_faiss, enableReference
+    global vectorstore_opensearch, enableReference
     global map_chain, map_chat, memory_chat, memory_chain, isReady, selected_LLM, allowTranslatedQustion
 
     # Multi-LLM
