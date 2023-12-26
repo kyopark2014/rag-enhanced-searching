@@ -23,47 +23,6 @@ RAG의 Knowledge Store에 없는 질문을 한다면 LLM은 모른다고 답변�
 <img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/fb2d4d52-afb6-4ac3-ab7d-904b5d348469" width="900">
 
 
-### Google Search API를 이용한 검색기능
-
-Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. 상세한 내용은 [Google Search API](./GoogleSearchAPI.md)에서 확인합니다. 여기서, assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다.
-
-```python
-from googleapiclient.discovery import build
-
-google_api_key = os.environ.get('google_api_key')
-google_cse_id = os.environ.get('google_cse_id')
-
-api_key = google_api_key
-cse_id = google_cse_id
-
-relevant_docs = []
-try:
-    service = build("customsearch", "v1", developerKey = api_key)
-    result = service.cse().list(q = revised_question, cx = cse_id).execute()
-    print('google search result: ', result)
-
-    if "items" in result:
-        for item in result['items']:
-            api_type = "google api"
-            excerpt = item['snippet']
-            uri = item['link']
-            title = item['title']
-            confidence = ""
-            assessed_score = ""
-
-            doc_info = {
-                "rag_type": 'search',
-                "api_type": api_type,
-                "confidence": confidence,
-                "metadata": {
-                    "source": uri,
-                    "title": title,
-                    "excerpt": excerpt,                                
-                },
-                "assessed_score": assessed_score,
-            }
-        relevant_docs.append(doc_info)
-```
 
 
 ### 영어로 질문시 한글 결과를 같이 보여주기
@@ -276,3 +235,46 @@ def traslation_to_english(llm, msg):
     
     return translated_msg[translated_msg.find('<result>')+9:len(translated_msg)-10]
 ```
+
+### Google Search API를 이용한 검색기능
+
+Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. 상세한 내용은 [Google Search API](./GoogleSearchAPI.md)에서 확인합니다. 여기서, assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다.
+
+```python
+from googleapiclient.discovery import build
+
+google_api_key = os.environ.get('google_api_key')
+google_cse_id = os.environ.get('google_cse_id')
+
+api_key = google_api_key
+cse_id = google_cse_id
+
+relevant_docs = []
+try:
+    service = build("customsearch", "v1", developerKey = api_key)
+    result = service.cse().list(q = revised_question, cx = cse_id).execute()
+    print('google search result: ', result)
+
+    if "items" in result:
+        for item in result['items']:
+            api_type = "google api"
+            excerpt = item['snippet']
+            uri = item['link']
+            title = item['title']
+            confidence = ""
+            assessed_score = ""
+
+            doc_info = {
+                "rag_type": 'search',
+                "api_type": api_type,
+                "confidence": confidence,
+                "metadata": {
+                    "source": uri,
+                    "title": title,
+                    "excerpt": excerpt,                                
+                },
+                "assessed_score": assessed_score,
+            }
+        relevant_docs.append(doc_info)
+```
+
