@@ -125,13 +125,6 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
     //  sources: [s3Deploy.Source.asset("../html/")],
     //  destinationBucket: s3Bucket,
     //});    
-    new s3Deploy.BucketDeployment(this, `upload-contents-for-${projectName}`, {
-      sources: [
-        s3Deploy.Source.asset("../contents/faq/")
-      ],
-      destinationBucket: s3Bucket,
-      destinationKeyPrefix: 'faq/' 
-    });   
     
     new cdk.CfnOutput(this, 'HtmlUpdateCommend', {
       value: 'aws s3 cp ../html/ ' + 's3://' + s3Bucket.bucketName + '/ --recursive',
