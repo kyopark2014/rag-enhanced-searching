@@ -304,7 +304,7 @@ function onSend(e) {
             "request_time": requestTime,        
             "type": "text",
             "body": message.value,
-            "conv_type": conv_type,
+            "conv_type": conv_type
         })
         
         sentTime.put(requestId, current);
