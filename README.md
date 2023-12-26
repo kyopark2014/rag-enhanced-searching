@@ -16,6 +16,11 @@ RAG의 Knowledge Store에 없는 질문을 한다면 LLM은 모른다고 답변�
 
 <img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/2fbd7c09-b28b-40ac-bf65-98a461807bb4" width="800">
 
+이때의 상세한 Signal Flow는 아래와 같습니다.
+
+
+<img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/98800806-baed-4e73-9d01-e4b017b35153" width="800">
+
 
 ### Google Search API를 이용한 검색기능
 
