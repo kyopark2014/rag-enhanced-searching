@@ -1,4 +1,4 @@
-# 한영 동시 검색 및 인터넷 검색을 활용하여 RAG 활용도 높이기
+# 한영 동시 검색 및 인터넷 검색을 활용하여 RAG를 편리하게 활용하기
 
 기업의 중요한 문서를 검색하여 편리하게 활용하기 위하여 LLM(Large Language Model)을 활용하는 기업들이 늘어나고 있습니다. 기업의 모든 데이터를 사전학습하는 것은 비용 및 시간에 대한 제약뿐 아니라 데이터 보안 면에서도 바람직하지 않습니다. 따라서, [RAG(Retrieval-Augmented Generation)](https://docs.aws.amazon.com/ko_kr/sagemaker/latest/dg/jumpstart-foundation-models-customize-rag.html)의 지식 저장소(Knowledge Store)를 이용하여 다수의 문서를 안전하게 검색하여 관련된 문서(Relevant docuents)를 추출한 후에 LLM으로 용도에 맞게 활용합니다.
 
