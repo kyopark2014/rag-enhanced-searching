@@ -23,7 +23,7 @@ const stage = 'dev';
 const s3_prefix = 'docs';
 const projectName = `rag-enhanced-searching`; 
 const bucketName = `storage-for-${projectName}-${region}`; 
-let kendra_region = process.env.CDK_DEFAULT_REGION;   //  "us-west-2"
+let kendra_region = process.env.CDK_DEFAULT_REGION; 
 
 const opensearch_account = "admin";
 const opensearch_passwd = "Wifi1234!";
@@ -265,6 +265,11 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
       statements: [passRolePolicy],
       }), 
     );  
+
+    new cdk.CfnOutput(this, `create-S3-data-source-for-${projectName}`, {
+      value: 'aws kendra create-data-source --index-id '+kendraIndex+' --name data-source-for-upload-file --type S3 --role-arn '+roleLambdaWebsocket.roleArn+' --configuration \'{\"S3Configuration\":{\"BucketName\":\"'+s3Bucket.bucketName+'\", \"DocumentsMetadataConfiguration\": {\"S3Prefix\":\"metadata/\"},\"InclusionPrefixes\": [\"'+s3_prefix+'/\"]}}\' --language-code ko --region '+kendra_region,
+      description: 'The commend to create data source using S3',
+    });
 
     // opensearch
     // Permission for OpenSearch
