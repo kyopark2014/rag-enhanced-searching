@@ -1578,7 +1578,7 @@ def getResponse(connectionId, jsonBody):
             elif text == 'enableDualSearching':
                 allowDualSearching = 'true'
                 msg  = "Translated question is enabled"
-            elif text == 'disableTranslatedQuestion':
+            elif text == 'disableDualSearching':
                 allowDualSearching = 'false'
                 msg  = "Translated question is disabled"
 
