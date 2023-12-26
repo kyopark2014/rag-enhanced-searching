@@ -1,8 +1,9 @@
 # 한영 동시 검색 및 인터넷 검색을 활용하여 RAG 성능 향상시키기
 
-LLM에 질문시 RAG를 통해 사전 학습되지 않은 정보들을 검색할 수 있습니다. 만약 한글로 검색한다면 RAG의 Knowledge Store에 있는 한글 문서들을 검색하게 됩니다. 따라서 다수의 영어를 포한한 다른 언어를 동시에 검색하는 것이 필요합니다.
+기업의 중요한 문서를 안전하게 검색하여 편리하게 활용하기 위하여 LLM(Large Language Model)을 활용하는 기업들이 늘어나고 있습니다. 기업의 모든 데이터를 사전학습하는것은 비용 및 시간에 대한 제약뿐 아니라 데이터 보안 면에서도 바람직하지 않습니다. 따라서, RAG(Retrieval-Augmented Generation)](https://docs.aws.amazon.com/ko_kr/sagemaker/latest/dg/jumpstart-foundation-models-customize-rag.html)의 지식저장소(Knowledge Store)를 이용하여 다수의 문서를 검색하여 관련된 문서(Relevant docuents)를 추출한 후에 LLM으로 용도에 맞게 활용합니다.
 
-RAG의 Knowledge Store에 없는 질문을 한다면 LLM은 모른다고 답변하게 됩니다. 하지만, 이 경우에 인터넷 검색을 통해 Knowledge Stroe의 부족한 면을 채울수 있다면 검색 성능을 향상 시킬수 있습니다.
+LLM에서는 RAG를 활용하여 사전 학습되지 않은 정보들을 검색할 수 있지만, 질문이 한국어인 경우에 한국어 문서만 검색이 가능하고, 영어문서는 별도로 검색하여야 합니다. 또한, RAG의 지식저장소에 없는 내용을 문의한 경우에 인터넷으로 쉽게 검색하여 답할수 있는 내용을 답하지 못하는 경우도 있습니다. 여기에서는 한영 동시 검색을 이용하여 한국어로 질문시에 영어 문서까지 검색하여 통합하여 결과를 보여주는 방법과 인터넷 검색을 통하여 RAG에 없는 데이터를 실시간으로 조회하여 결과를 보여주는 방법을 설명합니다. 이를 통해, RAG의 검색 성능을 향상시키고 LLM을 통한 Question/Answering을 진행할때에 사용자 편의성을 높일 수 있습니다. 
+
 
 ## 한영 동시 검색
 
@@ -203,6 +204,11 @@ def traslation_to_english(llm, msg):
 ### Google Search API를 이용한 검색기능
 
 Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. 상세한 내용은 [Google Search API](./GoogleSearchAPI.md)에서 확인합니다. 여기서, assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다.
+
+[api_key](https://developers.google.com/custom-search/docs/paid_element?hl=ko#api_key)에서 [키 가져오기] - [Select or create project]를 선택하여 Google API Key를 가져옵니다. 만약 기존 키가 없다면 새로 생성합니다.
+
+[새 검색엔진 만들기](https://programmablesearchengine.google.com/controlpanel/create?hl=ko)에서 검색엔진을 설정합니다. 이때, 검색할 내용은 "전체 웹 검색"을 선택하여야 합니다.
+
 
 ```python
 from googleapiclient.discovery import build
