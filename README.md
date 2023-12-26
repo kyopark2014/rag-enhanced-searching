@@ -176,6 +176,10 @@ msg = readStreamMsg(connectionId, requestId, stream)
 
 ### 영어로 얻어진 문장을 한국어로 번역
 
+```text
+pip install google-api-python-client
+```
+
 ```python
 def traslation_to_english(llm, msg):
     PROMPT = """\n\nHuman: 다음의 <article>를 English로 번역하세요. 머리말은 건너뛰고 본론으로 바로 들어가주세요. 또한 결과는 <result> tag를 붙여주세요.
