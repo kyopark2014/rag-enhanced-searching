@@ -1369,8 +1369,8 @@ def get_answer_using_RAG(llm, text, conv_type, connectionId, requestId, bedrock_
 
     return msg, reference
 
-def get_answer_using_ConversationChain(text, conversation, conv_type, connectionId, requestId, rag_type):
-    conversation.prompt = get_prompt_template(text, conv_type, rag_type)
+def get_answer_using_ConversationChain(text, conversation, conv_type, connectionId, requestId):
+    conversation.prompt = get_prompt_template(text, conv_type)
     try: 
         isTyping(connectionId, requestId)    
         stream = conversation.predict(input=text)
@@ -1601,7 +1601,7 @@ def getResponse(connectionId, jsonBody):
                 if conv_type == 'qa':   # RAG
                     msg, reference = get_answer_using_RAG(llm, text, conv_type, connectionId, requestId, bedrock_embeddings)     
                 
-                elif conv_type == 'normal' or conv_type == 'funny':      # normal
+                elif conv_type == 'normal':      # normal
                     msg = get_answer_using_ConversationChain(text, conversation, conv_type, connectionId, requestId)
                 
         elif type == 'document':
