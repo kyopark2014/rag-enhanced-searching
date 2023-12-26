@@ -22,15 +22,23 @@ RAG의 지식저장소에는 한국어로된 문서뿐 아니라 영어등 다�
 
 RAG는 지식저장소에서 관련된문서들(Relevant documents)를 추출하여 LLM의 context로 활용합니다. 따라서, context에 없는 내용을 질문하게 되면 모른다고 답변하여야 합니다. 이는 매우 정상적은 RAG의 활용 방식이지만, 인터넷으로 쉽게 검색되는 내용을 모른다고 하는것은 사용성에서 좋지 않을 수 있습니다. 이와같이 RAG에 관련된 문서가 없는 경우에 인터넷 검색을 통해 얻은 내용을 마치 RAG처럼 관련된 문서로 제공하면 사용성을 개선할 수 있습니다. 이를 위해서는 인터넷 검색 API를 연동하고 이를 RAG와 결합하여 결과를 보여줄 수 있어야 합니다.
 
-아래는 한영 동시 검색 및 인터넷 검색을 활용할 수 있는 Architecture를 보여주고 있습니다. 사용자의 요청은 Amazon API Gateway를 통해 전달되고, AWS Lambda를 통해 질문을 통해 처리됩니다. 한영 동시 검색을 위해 다수의 문서를 번역하여야 하므로 지연시간을 단축시키기 위하여 Multi-Region LLM을 활용합니다. 여기서는 us-east-1, us-west-2, ap-northeast-1, us-central-1의 Bedrock을 활용합니다. RAG의 지식저장소로는 Amazon OpenSearch와 Amazon Kendra를 활용합니다. OpenSearch는 매우 빠르고 좋은 성능의 검색 능력을 제공할 수 있고, Kendra는 다양한 데이터 소스를 활용하여 많은 데이터를 쉽게 모으고 관리할 수 있습니다. Multi-RAG를 조회시간을 단축하기 위하여 다중 Thread를 활용하여 동시에 조회를 수행합니다. 사용자와 Chatbot의 대화이력은 DynamoDB에 저장되고, 원할한 대화를 위해 활용됩니다. 또한, 여러개의 관련된 문서가 있으면, 문서의 우선순위를 정하여서 관련도가 높은 문서를 선택하여야 하여 상단에 놓을수 있어야 합니다. Faiss의 Similarity Search를 활용하여 Reranking 하도록 우선성 검색(Priority Search)을 하면 소수의 문서에 대한 Embedding이 필요하지만, 정략적으로 사용할 수 있는 점수(score)로 관련성 있는 문서를 선택 및 정렬할 수 있습니다. 또한 Lambda의 process와 memory를 활용하므로 별도로 비용이 추가되지 않습니다. 
+아래는 한영 동시 검색 및 인터넷 검색을 활용할 수 있는 Architecture를 보여주고 있습니다. 
 
 <img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/f7590d5d-b37d-492b-9bc3-1d4a1b76fff7" width="800">
 
-
-
+사용자의 요청은 Amazon API Gateway를 통해 전달되고, AWS Lambda를 통해 질문을 통해 처리됩니다. 한영 동시 검색을 위해 다수의 문서를 번역하여야 하므로 지연시간을 단축시키기 위하여 Multi-Region LLM을 활용합니다. 여기서는 us-east-1, us-west-2, ap-northeast-1, us-central-1의 Bedrock을 활용합니다. RAG의 지식저장소로는 Amazon OpenSearch와 Amazon Kendra를 활용합니다. OpenSearch는 매우 빠르고 좋은 성능의 검색 능력을 제공할 수 있고, Kendra는 다양한 데이터 소스를 활용하여 많은 데이터를 쉽게 모으고 관리할 수 있습니다. Multi-RAG를 조회시간을 단축하기 위하여 다중 Thread를 활용하여 동시에 조회를 수행합니다. 사용자와 Chatbot의 대화이력은 DynamoDB에 저장되고, 원할한 대화를 위해 활용됩니다. 또한, 여러개의 관련된 문서가 있으면, 문서의 우선순위를 정하여서 관련도가 높은 문서를 선택하여야 하여 상단에 놓을수 있어야 합니다. Faiss의 Similarity Search를 활용하여 Reranking 하도록 우선성 검색(Priority Search)을 하면 소수의 문서에 대한 Embedding이 필요하지만, 정략적으로 사용할 수 있는 점수(score)로 관련성 있는 문서를 선택 및 정렬할 수 있습니다. 또한 Lambda의 process와 memory를 활용하므로 별도로 비용이 추가되지 않습니다. 
 
 이때의 상세한 Signal Flow는 아래와 같습니다.
 
+1. 사용자의 질문(question)은 API Gateway를 통해 Lambda에 https POST 방식으로 전달됩니다. Lambda는 JSON body에서 질문을 읽어옵니다. 이때 사용자의 이전 대화이력이 필요하므로 Amazon DynamoDB에서 읽어옵니다. DynamoDB에서 대화이력을 로딩하는 작업은 처음 1회만 수행합니다.
+2. 사용자의 대화이력을 반영하여 사용자와 Chatbot이 interactive한 대화를 할 수 있도록, 대화이력과 사용자의 질문으로 새로운 질문(Revised Question)을 생성합니다. 이때 LLM에 대화이력(chat history)를 LLM에 context로 제공하고 적절한 Prompt를 이용하여 새로운 질문을 생성합니다.
+3. 새로운 질문(Revised question)으로 OpenSearch와 Kendra에 질문을 하여 관련된 문서(Relevant Documents)를 얻습니다. 이때 시간 단축을 위하여 멀티 Thread를 이용하여 동시에 질문하여 지연시간을 단축합니다. 
+4. 질문이 한국어인 경우에 Revised question을 영어로 번역합니다.
+5. 번역된 새로운 질문(translated revised question)을 이용하여 다시 OpenSearch와 Kendra에 다시 질문을 전닳합니다.
+6. 번역된 질문으로 얻은 관련된 문서가 영어 문서 일 경우에, LLM을 통해 번역을 수행합니다. 관련된 문서가 여러개이므로 Multi-Region의 LLM들을 활용하여 지연시간을 최소화 합니다.
+7. 한국어로 질문으로 얻은 N개의 관련된 문서와, 영어로 된 N개의 관련된 문서의 합은 최대 2xN개입니다. 이 문서를 가지고 context window 크기에 맞도록 문서를 선택합니다. 이때 관련되가 높은 문서가 context의 상단에 가도록 배치합니다.
+8. 관련도가 일정이하인 문서는 버리므로, 한개의 RAG의 문서도 선택되지 않을 수 있습니다. 이때에는 Google Seach API를 통해 인터넷 검색을 수행하고 하고, 이때 얻어진 문서들을 RAG처럼 Priority Search를 하여 선택한 후에 RAG 처럼 활용할 수 있습니다.
+9. 선택된 관련된 문서들(Selected relevant documents)로 Context를 생성한 후에 새로운 질문(Revised question)과 함께 LLM에 전달하여 사용자의 질문에 대한 답변을 생성하여 사용자에게 전달합니다.
 
 <img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/fb2d4d52-afb6-4ac3-ab7d-904b5d348469" width="900">
 
