@@ -57,7 +57,7 @@ MSG_HISTORY_LENGTH = 20
 speech_generation = True
 history_length = 0
 token_counter_history = 0
-allowTranslatedQustion = 'true'
+allowDualSearching = os.environ.get('allowDualSearching')
 
 # google search api
 googleApiSecret = os.environ.get('googleApiSecret')
@@ -1256,7 +1256,7 @@ def get_answer_using_RAG(llm, text, conv_type, connectionId, requestId, bedrock_
     print('start RAG for revised question')
     relevant_docs = get_relevant_documents_using_parallel_processing(question=revised_question, top_k=top_k)
 
-    if allowTranslatedQustion=='true' and isKorean(text)==True:
+    if allowDualSearching=='true' and isKorean(text)==True:
         print('start RAG for translated revised question')
         translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
         print('translated_revised_question: ', translated_revised_question)
@@ -1468,7 +1468,7 @@ def getResponse(connectionId, jsonBody):
     print('Conversation Type: ', conv_type)
 
     global vectorstore_opensearch, enableReference
-    global map_chain, map_chat, memory_chat, memory_chain, isReady, selected_LLM, allowTranslatedQustion
+    global map_chain, map_chat, memory_chat, memory_chain, isReady, selected_LLM, allowDualSearching
 
     # Multi-LLM
     profile = profile_of_LLMs[selected_LLM]
@@ -1576,10 +1576,10 @@ def getResponse(connectionId, jsonBody):
                 enableReference = 'false'
                 msg  = "Reference is disabled"
             elif text == 'enableTranslatedQuestion':
-                allowTranslatedQustion = 'true'
+                allowDualSearching = 'true'
                 msg  = "Translated question is enabled"
             elif text == 'disableTranslatedQuestion':
-                allowTranslatedQustion = 'false'
+                allowDualSearching = 'false'
                 msg  = "Translated question is disabled"
 
             elif text == 'clearMemory':

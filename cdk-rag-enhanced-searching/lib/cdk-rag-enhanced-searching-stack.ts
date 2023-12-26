@@ -31,6 +31,7 @@ const enableReference = 'true';
 let opensearch_url = "";
 const numberOfRelevantDocs = '4';
 const kendraMethod = "custom_retriever"; // custom_retriever or kendra_retriever
+const allowDualSearching='false'
 
 const claude_instance = JSON.stringify([
   {
@@ -613,7 +614,8 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
         kendraMethod: kendraMethod,
         profile_of_LLMs:profile_of_LLMs,
         capabilities: capabilities,
-        googleApiSecret: googleApiSecret.secretName
+        googleApiSecret: googleApiSecret.secretName,
+        allowDualSearching: allowDualSearching
       }
     });     
     lambdaChatWebsocket.grantInvoke(new iam.ServicePrincipal('apigateway.amazonaws.com'));  
