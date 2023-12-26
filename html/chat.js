@@ -297,6 +297,9 @@ function onSend(e) {
         if(conversationType=='qa') {
             conv_type = 'qa'
         }
+        else {
+            conv_type = 'normal'
+        }
         
         sendMessage({
             "user_id": userId,
@@ -563,6 +566,9 @@ attachFile.addEventListener('click', function(){
 
                             if(conversationType=='qa') {
                                 conv_type = 'qa'
+                            }
+                            else {
+                                conv_type = 'normal'
                             }
                                            
                             // summary for the upload file                            
