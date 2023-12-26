@@ -294,25 +294,8 @@ function onSend(e) {
         let requestId = uuidv4();
         addSentMessage(requestId, timestr, message.value);
         
-        if(conversationType=='qa-all') {
-            conv_type = 'qa',
-            rag_type = 'all'
-        }
-        else if(conversationType=='qa-kendra') {
-            conv_type = 'qa',
-            rag_type = 'kendra'
-        }
-        else if(conversationType=='qa-opensearch') {
-            conv_type = 'qa',
-            rag_type = 'opensearch'
-        }
-        else if(conversationType=='qa-faiss') {
-            conv_type = 'qa',
-            rag_type = 'faiss'
-        }
-        else {
-            conv_type = conversationType,
-            rag_type = ''
+        if(conversationType=='qa') {
+            conv_type = 'qa'
         }
         
         sendMessage({
@@ -322,7 +305,6 @@ function onSend(e) {
             "type": "text",
             "body": message.value,
             "conv_type": conv_type,
-            "rag_type": rag_type
         })
         
         sentTime.put(requestId, current);
@@ -579,25 +561,8 @@ attachFile.addEventListener('click', function(){
                         if (xmlHttp.readyState == XMLHttpRequest.DONE && xmlHttp.status == 200 ) {
                             console.log(xmlHttp.responseText);
 
-                            if(conversationType=='qa-all') {
-                                conv_type = 'qa',
-                                rag_type = 'all'
-                            }
-                            else if(conversationType=='qa-kendra') {
-                                conv_type = 'qa',
-                                rag_type = 'kendra'
-                            }
-                            else if(conversationType=='qa-opensearch') {
-                                conv_type = 'qa',
-                                rag_type = 'opensearch'
-                            }
-                            else if(conversationType=='qa-faiss') {
-                                conv_type = 'qa',
-                                rag_type = 'faiss'
-                            }
-                            else {
-                                conv_type = conversationType,
-                                rag_type = ''
+                            if(conversationType=='qa') {
+                                conv_type = 'qa'
                             }
                                            
                             // summary for the upload file                            
@@ -607,8 +572,7 @@ attachFile.addEventListener('click', function(){
                                 "request_time": requestTime,
                                 "type": "document",
                                 "body": filename,
-                                "conv_type": conv_type,
-                                "rag_type": rag_type
+                                "conv_type": conv_type
                             })
                         }
                         else if(xmlHttp.readyState == XMLHttpRequest.DONE && xmlHttp.status != 200) {

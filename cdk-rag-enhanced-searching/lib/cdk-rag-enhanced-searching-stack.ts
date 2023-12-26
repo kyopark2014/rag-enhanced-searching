@@ -24,15 +24,11 @@ const s3_prefix = 'docs';
 const projectName = `rag-enhanced-searching`; 
 const bucketName = `storage-for-${projectName}-${region}`; 
 let kendra_region = process.env.CDK_DEFAULT_REGION;   //  "us-west-2"
-const rag_method = 'RetrievalPrompt' // RetrievalPrompt, RetrievalQA, ConversationalRetrievalChain
 
 const opensearch_account = "admin";
 const opensearch_passwd = "Wifi1234!";
 const enableReference = 'true';
 let opensearch_url = "";
-const debugMessageMode = 'true'; // if true, debug messages will be delivered to the client.
-const useParallelUpload = 'true';
-const useParallelRAG = 'true';
 const numberOfRelevantDocs = '4';
 const kendraMethod = "custom_retriever"; // custom_retriever or kendra_retriever
 
@@ -80,7 +76,7 @@ const claude_basic = JSON.stringify([
 
 const profile_of_LLMs = claude_instance;
 
-const capabilities = JSON.stringify(["kendra", "opensearch", "faiss"]);
+const capabilities = JSON.stringify(["kendra", "opensearch"]);
 
 export class CdkRagEnhancedSearchingStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -269,22 +265,6 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
       statements: [passRolePolicy],
       }), 
     );  
-
-    // Poly Role
-    const PollyPolicy = new iam.PolicyStatement({  
-      actions: ['polly:*'],
-      resources: ['*'],
-    });
-    roleLambdaWebsocket.attachInlinePolicy(
-      new iam.Policy(this, 'polly-policy', {
-        statements: [PollyPolicy],
-      }),
-    );
-
-    new cdk.CfnOutput(this, `create-S3-data-source-for-${projectName}`, {
-      value: 'aws kendra create-data-source --index-id '+kendraIndex+' --name data-source-for-upload-file --type S3 --role-arn '+roleLambdaWebsocket.roleArn+' --configuration \'{\"S3Configuration\":{\"BucketName\":\"'+s3Bucket.bucketName+'\", \"DocumentsMetadataConfiguration\": {\"S3Prefix\":\"metadata/\"},\"InclusionPrefixes\": [\"'+s3_prefix+'/\"]}}\' --language-code ko --region '+kendra_region,
-      description: 'The commend to create data source using S3',
-    });
 
     // opensearch
     // Permission for OpenSearch
@@ -624,10 +604,6 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
         path: 'https://'+distribution.domainName+'/',   
         kendraIndex: kendraIndex,
         roleArn: roleLambdaWebsocket.roleArn,
-        debugMessageMode: debugMessageMode,
-        rag_method: rag_method,
-        useParallelUpload: useParallelUpload,
-        useParallelRAG: useParallelRAG,
         numberOfRelevantDocs: numberOfRelevantDocs,
         kendraMethod: kendraMethod,
         profile_of_LLMs:profile_of_LLMs,
