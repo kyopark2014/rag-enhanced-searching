@@ -36,13 +36,13 @@ chmod a+rx resize.sh && ./resize.sh 80
 4) 소스를 다운로드합니다.
 
 ```java
-git clone https://github.com/kyopark2014/korean-chatbot-using-amazon-bedrock
+git clone https://github.com/kyopark2014/rag-enhanced-searching
 ```
 
 5) cdk 폴더로 이동하여 필요한 라이브러리를 설치합니다.
 
 ```java
-cd korean-chatbot-using-amazon-bedrock/cdk-korean-chatbot/ && npm install
+cd rag-enhanced-searching/cdk-rag-enhanced-searching/ && npm install
 ```
 
 6) CDK 사용을 위해 Boostraping을 수행합니다.
@@ -56,7 +56,7 @@ aws sts get-caller-identity --query Account --output text
 아래와 같이 bootstrap을 수행합니다. 여기서 "account-id"는 상기 명령어로 확인한 12자리의 Account ID입니다. bootstrap 1회만 수행하면 되므로, 기존에 cdk를 사용하고 있었다면 bootstrap은 건너뛰어도 됩니다.
 
 ```java
-cdk bootstrap aws://account-id/ap-northeast-2
+cdk bootstrap aws://account-id/ap-northeast-1
 ```
 
 7) 인프라를 설치합니다.
