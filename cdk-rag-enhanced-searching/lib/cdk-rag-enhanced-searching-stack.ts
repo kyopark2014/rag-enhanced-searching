@@ -22,7 +22,7 @@ const debug = false;
 const stage = 'dev';
 const s3_prefix = 'docs';
 const projectName = `rag-enhanced-searching`; 
-const bucketName = `storage-for-${projectName}-${region}`; 
+// const bucketName = `storage-for-${projectName}-${region}`; 
 let kendra_region = process.env.CDK_DEFAULT_REGION; 
 
 const opensearch_account = "admin";
@@ -85,7 +85,7 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
 
     // s3 
     const s3Bucket = new s3.Bucket(this, `storage-${projectName}`,{
-      bucketName: bucketName,
+      // bucketName: bucketName,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
