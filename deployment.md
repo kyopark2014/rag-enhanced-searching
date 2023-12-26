@@ -67,13 +67,14 @@ cdk deploy --all
 
 설치가 완료되면 아래와 같은 Output이 나옵니다. 
 
-![image](https://github.com/kyopark2014/korean-chatbot-using-amazon-bedrock/assets/52392004/766b4d33-13c9-49b1-9462-832120f73109)
+![noname](https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/bd032613-f546-48f0-8217-67e87d23789c)
 
 8) HTMl 파일을 S3에 복사합니다.
 
 아래와 같이 Output의 HtmlUpdateCommend을 붙여넣기 합니다. 
 
-![image](https://github.com/kyopark2014/korean-chatbot-using-amazon-bedrock/assets/52392004/130bae3d-3bde-43a8-8bcb-55cee1e06e42)
+![noname](https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/307cb0a0-a09c-485c-a7a5-f65cef2c9eaf)
+
 
 9) Google API Key Update하기
 
