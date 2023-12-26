@@ -77,7 +77,8 @@ const claude_basic = JSON.stringify([
 
 const profile_of_LLMs = claude_instance;
 
-const capabilities = JSON.stringify(["kendra", "opensearch"]);
+//const capabilities = JSON.stringify(["kendra", "opensearch"]);
+const capabilities = JSON.stringify(["opensearch"]);
 
 export class CdkRagEnhancedSearchingStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
