@@ -128,8 +128,6 @@ def get_llm(profile_of_LLMs, selected_LLM):
     llm = Bedrock(
         model_id=modelId, 
         client=boto3_bedrock, 
-        # streaming=True,
-        # callbacks=[StreamingStdOutCallbackHandler()],
         model_kwargs=parameters)
     return llm
 
@@ -273,11 +271,7 @@ def delete_index_if_exist(index_name):
         print('no index: ', index_name)
 
 def store_document_for_opensearch(bedrock_embeddings, docs, userId, documentId):
-    #index_name = "rag-index-"+userId+'-'+documentId
     index_name = "rag-index-"+documentId
-    #index_name = index_name.replace(' ', '_') # remove spaces
-    #index_name = index_name.replace(',', '_') # remove commas
-    #index_name = index_name.lower() # change to lowercase
     print('index_name: ', index_name)
     
     delete_index_if_exist(index_name)
@@ -468,17 +462,6 @@ def get_summary(llm, texts):
     print('word_kor: ', word_kor)
     
     if word_kor:
-        #prompt_template = """\n\nHuman: 다음 텍스트를 간결하게 요약하세오. 텍스트의 요점을 다루는 글머리 기호로 응답을 반환합니다.
-        #prompt_template = """\n\nHuman: 아래 <text>는 문서에서 추출한 텍스트입니다. 친절한 AI Assistant로서 아래와 같이 정리해주세요.
-        
-        #- 50자 미안의 제목을 <title>Name: </title> 안에 넣을것
-        #- 300자 미안의 설명을 <description>설명: </description> 안에 넣을것
-        #- 500자 미만의 내용 요약을 <summarization>요약: </summarization> 안에 넣을것
-        #- 10자 미안의 애용과 과련된 테그 5개를 <tag></tag> 테그 안에 생성할 것
-
-        #모든 생성 결과는 한국어로 해주세요. 결과에 개행문자인 "\m"과 글자 수와 같은 부가정보는 절대 포함하지 마세요.
-        #생성이 어렵거나 해당 내용을 모르는 경우 "None"로 결과를 생성하세요.
-
         prompt_template = """\n\nHuman: 다음 텍스트를 요약해서 500자 이내로 설명하세오.
         
         <text>
@@ -688,7 +671,6 @@ def retrieve_from_kendra_using_kendra_retriever(query, top_k):
 
         result_id = document.metadata['result_id']
         document_id = document.metadata['document_id']
-        # source = document.metadata['source']
         title = document.metadata['title']
         excerpt = document.metadata['excerpt']
 
@@ -709,7 +691,6 @@ def retrieve_from_kendra_using_kendra_retriever(query, top_k):
                 "api_type": api_type,
                 "confidence": confidence,
                 "metadata": {
-                    #"type": query_result_type,
                     "document_id": document_id,
                     "source": uri,
                     "title": title,
@@ -719,8 +700,6 @@ def retrieve_from_kendra_using_kendra_retriever(query, top_k):
                         "_excerpt_page_number": page
                     }
                 },
-                #"query_id": query_id,
-                #"feedback_token": feedback_token
                 "assessed_score": assessed_score,
                 "result_id": result_id
             }
@@ -731,15 +710,12 @@ def retrieve_from_kendra_using_kendra_retriever(query, top_k):
                 "api_type": api_type,
                 "confidence": confidence,
                 "metadata": {
-                    #"type": query_result_type,
                     "document_id": document_id,
                     "source": uri,
                     "title": title,
                     "excerpt": excerpt,
                     "translated_excerpt": ""
                 },
-                #"query_id": query_id,
-                #"feedback_token": feedback_token
                 "assessed_score": assessed_score,
                 "result_id": result_id
             }
@@ -784,8 +760,6 @@ def retrieve_from_kendra_using_custom_retriever(query, top_k):
             relevant_docs = []
             retrieve_docs = []
             for query_result in resp["ResultItems"]:
-                #confidence = query_result["ScoreAttributes"]['ScoreConfidence']
-                #if confidence == 'VERY_HIGH' or confidence == 'HIGH' or confidence == 'MEDIUM': only for "en"
                 retrieve_docs.append(extract_relevant_doc_for_kendra(query_id=query_id, api_type="retrieve", query_result=query_result))
                 # print('retrieve_docs: ', retrieve_docs)
 
@@ -842,7 +816,6 @@ def retrieve_from_kendra_using_custom_retriever(query, top_k):
                     IndexId = index_id,
                     QueryText = query,
                     PageSize = top_k,
-                    #QueryResultTypeFilter = "DOCUMENT",  # 'QUESTION_ANSWER', 'ANSWER', "DOCUMENT"
                     AttributeFilter = {
                         "EqualsTo": {      
                             "Key": "_language_code",
@@ -1528,11 +1501,9 @@ def getResponse(connectionId, jsonBody):
     if conv_type == 'qa':
         vectorstore_opensearch = OpenSearchVectorSearch(
             index_name = "rag-index-*", # all
-            #index_name=f"rag-index-{userId}',
             is_aoss = False,
             ef_search = 1024, # 512(default)
             m=48,
-            #engine="faiss",  # default: nmslib
             embedding_function = bedrock_embeddings,
             opensearch_url=opensearch_url,
             http_auth=(opensearch_account, opensearch_passwd), # http_auth=awsauth,
