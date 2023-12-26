@@ -14,7 +14,7 @@ RAG의 Knowledge Store에 없는 질문을 한다면 LLM은 모른다고 답변�
 
 이를 위해서는 영어결과를 한국어로 번역할 수 있어야 하며, 한국어 질문을 영어로 번역해서 다시 질의하여 얻어진 결과를 하나로 정리해서 제공할 수 있어야 합니다. 결과적으로 관련 문서의 증가 및 추가적인 번역작업으로 전체적인 지연시간이 증가할 수 있습니다. 여기서는 LLM을 이용한 한영 번역, 한국어와 영어를 사용한 RAG 검색 및 통합된 결과를 얻는 방법과 더불어, 늘어난 지연시간을 단축할 수 있는 방법을 설명합니다.
 
-![image](https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/2fbd7c09-b28b-40ac-bf65-98a461807bb4)
+<img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/2fbd7c09-b28b-40ac-bf65-98a461807bb4" width="800">
 
 
 ### Google Search API를 이용한 검색기능
