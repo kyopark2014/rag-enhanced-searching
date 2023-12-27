@@ -24,15 +24,15 @@ RAG는 지식저장소에서 관련된문서들(Relevant documents)를 추출하
 <img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/92f90bff-6714-4029-83e7-9a57bfcf2acb" width="800">
 
 
-사용자의 요청은 [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)를 통해 전달되고, [AWS Lambda](https://docs.aws.amazon.com/lambda/)를 통해 질문을 통해 처리됩니다. 한영 동시 검색을 위해 다수의 문서를 번역하여야 하므로 지연시간을 단축시키기 위하여 Multi-Region LLM을 활용합니다. 여기서는 us-east-1, us-west-2, ap-northeast-1, us-central-1의 Bedrock을 활용합니다. RAG의 지식저장소로는 [Amazon OpenSearch](https://aws.amazon.com/ko/opensearch-service/features/)와 [Amazon Kendra](https://docs.aws.amazon.com/kendra/latest/dg/what-is-kendra.html)를 활용합니다. OpenSearch는 매우 빠르고 좋은 성능의 검색 능력을 제공할 수 있고, Kendra는 다양한 데이터 소스를 활용하여 많은 데이터를 쉽게 모으고 관리할 수 있습니다. Multi-RAG를 조회시간을 단축하기 위하여 다중 Thread를 활용하여 동시에 조회를 수행합니다. 사용자와 Chatbot의 대화이력은 [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)에 저장되고, 원할한 대화를 위해 활용됩니다. 또한, 여러개의 관련된 문서가 있으면, 문서의 우선순위를 정하여서 관련도가 높은 문서를 선택하여야 하여 상단에 놓을수 있어야 합니다. [Faiss의 Similarity Search](https://github.com/facebookresearch/faiss)를 활용하여 Reranking 하도록 우선성 검색(Priority Search)을 하면 소수의 문서에 대한 Embedding이 필요하지만, 정략적으로 사용할 수 있는 점수(score)로 관련성 있는 문서를 선택 및 정렬할 수 있습니다. 또한 Lambda의 process와 memory를 활용하므로 별도로 비용이 추가되지 않습니다. 
+사용자의 요청은 [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)를 통해 전달되고, [AWS Lambda](https://docs.aws.amazon.com/lambda/)를 통해 질문을 통해 처리됩니다. 한영 동시 검색을 위해 다수의 문서를 번역하여야 하므로 지연시간을 단축시키기 위하여 Multi-Region LLM을 활용합니다. 여기서는 us-east-1, us-west-2, ap-northeast-1, us-central-1의 Bedrock을 활용합니다. RAG의 지식저장소로는 [Amazon OpenSearch](https://aws.amazon.com/ko/opensearch-service/features/)를 활용합니다. OpenSearch는 매우 빠르고 좋은 성능의 검색 능력을 제공할 수 있습니다. 사용자와 Chatbot의 대화이력은 [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)에 저장되고, 원할한 대화를 위해 활용됩니다. 또한, 여러개의 관련된 문서가 있으면, 문서의 우선순위를 정하여서 관련도가 높은 문서를 선택하여야 하여 상단에 놓을수 있어야 합니다. [Faiss의 Similarity Search](https://github.com/facebookresearch/faiss)를 활용하여 Reranking 하도록 우선성 검색(Priority Search)을 하면 소수의 문서에 대한 Embedding이 필요하지만, 정략적으로 사용할 수 있는 점수(score)로 관련성 있는 문서를 선택 및 정렬할 수 있습니다. 또한 Lambda의 process와 memory를 활용하므로 별도로 비용이 추가되지 않습니다. 
 
 이때의 상세한 Signal Flow는 아래와 같습니다.
 
 1. 사용자의 질문(question)은 API Gateway를 통해 Lambda에 https POST 방식으로 전달됩니다. Lambda는 JSON body에서 질문을 읽어옵니다. 이때 사용자의 이전 대화이력이 필요하므로 [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)에서 읽어옵니다. DynamoDB에서 대화이력을 로딩하는 작업은 처음 1회만 수행합니다.
 2. 사용자의 대화이력을 반영하여 사용자와 Chatbot이 interactive한 대화를 할 수 있도록, 대화이력과 사용자의 질문으로 새로운 질문(Revised Question)을 생성합니다. 이때 LLM에 대화이력(chat history)를 LLM에 context로 제공하고 적절한 Prompt를 이용하여 새로운 질문을 생성합니다.
-3. 새로운 질문(Revised question)으로 OpenSearch와 Kendra에 질문을 하여 관련된 문서(Relevant Documents)를 얻습니다. 이때 시간 단축을 위하여 멀티 Thread를 이용하여 동시에 질문하여 지연시간을 단축합니다. 
+3. 새로운 질문(Revised question)으로 OpenSearch에 질문을 하여 관련된 문서(Relevant Documents)를 얻습니다. 이때 시간 단축을 위하여 멀티 Thread를 이용하여 동시에 질문하여 지연시간을 단축합니다. 
 4. 질문이 한국어인 경우에 Revised question을 영어로 번역합니다.
-5. 번역된 새로운 질문(translated revised question)을 이용하여 다시 OpenSearch와 Kendra에 다시 질문을 전닳합니다.
+5. 번역된 새로운 질문(translated revised question)을 이용하여 다시 OpenSearch에 다시 질문을 전닳합니다.
 6. 번역된 질문으로 얻은 관련된 문서가 영어 문서 일 경우에, LLM을 통해 번역을 수행합니다. 관련된 문서가 여러개이므로 Multi-Region의 LLM들을 활용하여 지연시간을 최소화 합니다.
 7. 한국어로 질문으로 얻은 N개의 관련된 문서와, 영어로 된 N개의 관련된 문서의 합은 최대 2xN개입니다. 이 문서를 가지고 context window 크기에 맞도록 문서를 선택합니다. 이때 관련되가 높은 문서가 context의 상단에 가도록 배치합니다.
 8. 관련도가 일정이하인 문서는 버리므로, 한개의 RAG의 문서도 선택되지 않을 수 있습니다. 이때에는 Google Seach API를 통해 인터넷 검색을 수행하고 하고, 이때 얻어진 문서들을 RAG처럼 Priority Search를 하여 선택한 후에 RAG 처럼 활용할 수 있습니다.
@@ -47,47 +47,24 @@ revised question을 먼저 영어로 변환하여 Mult-RAG를 통해 조회합�
 ```python
 translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
 
-relevant_docs_using_translated_question = get_relevant_documents_using_parallel_processing(question=translated_revised_question, top_k=top_k)
-
-relevant_docs_using_translated_question = []
-for reg in capabilities:            
-    if reg == 'kendra':
-        rel_docs = retrieve_from_kendra(query=translated_revised_question, top_k=top_k)      
-        print('rel_docs (kendra): '+json.dumps(rel_docs))
-    else:
-        rel_docs = retrieve_from_vectorstore(query=translated_revised_question, top_k=top_k, rag_type=reg)
-        print(f'rel_docs ({reg}): '+json.dumps(rel_docs))
-
-    if(len(rel_docs)>=1):
-        for doc in rel_docs:
-            relevant_docs_using_translated_question.append(doc)    
-
+relevant_docs_using_translated_question = retrieve_from_vectorstore(query=translated_revised_question, top_k=4, rag_type=rag_type)
+            
+docs_translation_required = []
 if len(relevant_docs_using_translated_question)>=1:
     for i, doc in enumerate(relevant_docs_using_translated_question):
         if isKorean(doc)==False:
-            translated_excerpt = traslation_to_korean(llm=llm, msg=doc['metadata']['excerpt'])
-            doc['metadata']['translated_excerpt'] = translated_excerpt
-            relevant_docs.append(doc)
+            docs_translation_required.append(doc)
         else:
-            print(f"original {i}: {doc}")
             relevant_docs.append(doc)
+                                   
+    translated_docs = translate_relevant_documents_using_parallel_processing(docs_translation_required)
+    for i, doc in enumerate(translated_docs):
+        relevant_docs.append(doc)
 ```
 
 그런데, 영어로 번역된 질문으로 조회한 Relevant Document의 숫자만큰 한국어로 번역이 필요하므로 프로세싱 시간이 관련된 문서수만큼 증가하는 이슈가 발생합니다. 이는 사용성을 저하 시키므로 개선이 필요합니다. 여기에서는 Multi-Region LLM을 활용하여 4개의 리전의 LLM을 활용하여 RAG 문서를 한국어로 번역하는 시간을 줄입니다. 아래와 같이 영어로 질문을 한 후에 얻어진 문서들에서 번역이 필요한 리스트를 추출합니다. 이후 multi thread를 이용하여 각 리전으로 LLM에 번역을 요청합니다. 
 
 ```python
-docs_translation_required = []
-if len(relevant_docs_using_translated_question) >= 1:
-    for i, doc in enumerate(relevant_docs_using_translated_question):
-        if isKorean(doc) == False:
-            docs_translation_required.append(doc)
-        else:
-            relevant_docs.append(doc)
-translated_docs = translate_relevant_documents_using_parallel_processing(docs_translation_required)
-
-for i, doc in enumerate(translated_docs):
-  relevant_docs.append(doc)
-
 def translate_relevant_documents_using_parallel_processing(docs):
     selected_LLM = 0
     relevant_docs = []    
@@ -116,6 +93,15 @@ def translate_relevant_documents_using_parallel_processing(docs):
         process.join()
     
     return relevant_docs
+
+def translate_process_from_relevent_doc(conn, llm, doc):
+    translated_excerpt = traslation_to_korean(llm=llm, msg=doc['metadata']['excerpt'])
+
+    # doc['metadata']['excerpt'] = translated_excerpt
+    doc['metadata']['translated_excerpt'] = translated_excerpt
+
+    conn.send(doc)
+    conn.close()
 ```
 
 결과적으로 4배의 속도 향상이 있었습니다. (추후 결과를 수치로 제시할것) 
