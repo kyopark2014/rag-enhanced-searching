@@ -121,8 +121,6 @@ def translate_process_from_relevent_doc(conn, llm, doc):
     conn.close()
 ```
 
-결과적으로 4배의 속도 향상이 있었습니다. (추후 결과를 수치로 제시할것) 
-
 관련된 문장의 숫자가 늘어났으므로 context로 활용할 문서를 추출합니다. 아래의 priority_search()는 Faiss의 유사성 검색(similarity search)를 이용하여 관련문서를 reranking하는 동작을 수행합니다. 
 
 ```python
@@ -173,7 +171,7 @@ def priority_search(query, relevant_docs, bedrock_embeddings):
     return docs
 ```            
 
-선택된 관련문서를 이용해 Prompt를 생성한 후에 LLM에 질의하여 영한 검색을 통한 결과를 얻을 수 있습니다.
+선택된 관련문서를 이용해 Prompt를 생성한 후에 LLM에 질의하여 영한 검색을 통한 결과를 얻을 수 있습니다. 관련된 문서에 번역된 발취문(translated_excerpt)이 있으면 Context에 포함하여 Prompt를 구성합니다. 결과는 아래처럼 Stream으로 사용자에게 보여줍니다.
 
 ```python
 relevant_context = ""
@@ -187,24 +185,33 @@ relevant_context = relevant_context + content + "\n\n"
 print('relevant_context: ', relevant_context)
 
 stream = llm(PROMPT.format(context = relevant_context, question = revised_question))
-msg = readStreamMsg(connectionId, requestId, stream)            
+msg = readStreamMsg(connectionId, requestId, stream)
+
+def readStreamMsg(connectionId, requestId, stream):
+    msg = ""
+    if stream:
+        for event in stream:
+            msg = msg + event
+
+            result = {
+                'request_id': requestId,
+                'msg': msg,
+                'status': 'proceeding'
+            }
+            sendMessage(connectionId, result)
+    return msg         
 ```
-
-
-
 
 
 ### Google Search API를 이용한 검색기능
 
-Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. 상세한 내용은 [Google Search API](./GoogleSearchAPI.md)에서 확인합니다. 여기서, assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다.
+Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. Google Search API를 사용하기 위해서는 아래와 같이 클라이언트를 설치하여야 합니다. 
 
 ```text
 pip install google-api-python-client
 ```
 
-[api_key](https://developers.google.com/custom-search/docs/paid_element?hl=ko#api_key)에서 [키 가져오기] - [Select or create project]를 선택하여 Google API Key를 가져옵니다. 만약 기존 키가 없다면 새로 생성합니다.
-
-[새 검색엔진 만들기](https://programmablesearchengine.google.com/controlpanel/create?hl=ko)에서 검색엔진을 설정합니다. 이때, 검색할 내용은 "전체 웹 검색"을 선택하여야 합니다.
+Google Search API를 사용하기 위해서는 [api_key](https://developers.google.com/custom-search/docs/paid_element?hl=ko#api_key)와 [검색엔진 ID](https://programmablesearchengine.google.com/controlpanel/create?hl=ko)가 필요합니다. 결과의 assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다.
 
 
 ```python
@@ -248,7 +255,7 @@ try:
 
 ### 영어로 질문시 한글 결과를 같이 보여주기
 
-영어로 질의시 영어 문서들을 조회할 수 있습니다. 결과가 한국어/영어인것을 확인한 후에 한국어가 아니라면 LLM에 문의하여 아래와 같이 한국어로 본역한 후에 결과에 추가하여 같이 보여줍니다.
+결과가 한국어/영어인것을 확인하여, 한국어가 아니라면 LLM을 통해 영어로 번역을 수행합니다. 결과는 영어와 함께 한국어 번역을 보여줍니다.
 
 ```python
 if isKorean(msg)==False:
