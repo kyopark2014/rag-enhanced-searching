@@ -24,7 +24,6 @@ from langchain.vectorstores.faiss import FAISS
 from langchain.vectorstores.opensearch_vector_search import OpenSearchVectorSearch
 from langchain.embeddings import BedrockEmbeddings
 from langchain.chains import LLMChain
-from langchain.retrievers import AmazonKendraRetriever
 from multiprocessing import Process, Pipe
 from googleapiclient.discovery import build
 
@@ -33,7 +32,6 @@ s3_bucket = os.environ.get('s3_bucket') # bucket name
 s3_prefix = os.environ.get('s3_prefix')
 meta_prefix = "metadata/"
 callLogTableName = os.environ.get('callLogTableName')
-kendra_region = os.environ.get('kendra_region', 'us-west-2')
 profile_of_LLMs = json.loads(os.environ.get('profile_of_LLMs'))
 isReady = False   
 
@@ -43,15 +41,10 @@ enableReference = os.environ.get('enableReference', 'false')
 opensearch_url = os.environ.get('opensearch_url')
 path = os.environ.get('path')
 doc_prefix = s3_prefix+'/'
-speech_prefix = 'speech/'
 
-kendraIndex = os.environ.get('kendraIndex')
-kendra_method = os.environ.get('kendraMethod')
 roleArn = os.environ.get('roleArn')
 top_k = int(os.environ.get('numberOfRelevantDocs', '8'))
 selected_LLM = 0
-capabilities = json.loads(os.environ.get('capabilities'))
-print('capabilities: ', capabilities)
 MSG_LENGTH = 100
 MSG_HISTORY_LENGTH = 20
 speech_generation = True
@@ -294,72 +287,6 @@ def store_document_for_opensearch(bedrock_embeddings, docs, userId, documentId):
 
     print('uploaded into opensearch')
     
-# store document into Kendra
-def store_document_for_kendra(path, doc_prefix, s3_file_name, documentId):
-    print('store document into kendra')
-    encoded_name = parse.quote(s3_file_name)
-    source_uri = path+doc_prefix+encoded_name    
-    #print('source_uri: ', source_uri)
-    ext = (s3_file_name[s3_file_name.rfind('.')+1:len(s3_file_name)]).upper()
-    print('ext: ', ext)
-
-    # PLAIN_TEXT, XSLT, MS_WORD, RTF, CSV, JSON, HTML, PDF, PPT, MD, XML, MS_EXCEL
-    if(ext == 'PPTX'):
-        file_type = 'PPT'
-    elif(ext == 'TXT'):
-        file_type = 'PLAIN_TEXT'         
-    elif(ext == 'XLS' or ext == 'XLSX'):
-        file_type = 'MS_EXCEL'      
-    elif(ext == 'DOC' or ext == 'DOCX'):
-        file_type = 'MS_WORD'
-    else:
-        file_type = ext
-
-    kendra_client = boto3.client(
-        service_name='kendra', 
-        region_name=kendra_region,
-        config = Config(
-            retries=dict(
-                max_attempts=10
-            )
-        )
-    )
-
-    documents = [
-        {
-            "Id": documentId,
-            "Title": s3_file_name,
-            "S3Path": {
-                "Bucket": s3_bucket,
-                "Key": s3_prefix+'/'+s3_file_name
-            },
-            "Attributes": [
-                {
-                    "Key": '_source_uri',
-                    'Value': {
-                        'StringValue': source_uri
-                    }
-                },
-                {
-                    "Key": '_language_code',
-                    'Value': {
-                        'StringValue': "ko"
-                    }
-                },
-            ],
-            "ContentType": file_type
-        }
-    ]
-    print('document info: ', documents)
-
-    result = kendra_client.batch_put_document(
-        IndexId = kendraIndex,
-        RoleArn = roleArn,
-        Documents = documents       
-    )
-    # print('batch_put_document(kendra): ', result)
-    print('uploaded into kendra')
-
 # load documents from s3 for pdf and txt
 def load_document(file_type, s3_file_name):
     s3r = boto3.resource("s3")
@@ -628,237 +555,6 @@ def get_revised_question(llm, connectionId, requestId, query):
     
     return revised_question
 
-kendraRetriever = AmazonKendraRetriever(
-    index_id=kendraIndex, 
-    top_k=top_k, 
-    region_name=kendra_region,
-    attribute_filter = {
-        "EqualsTo": {      
-            "Key": "_language_code",
-            "Value": {
-                "StringValue": "ko"
-            }
-        },
-    },
-)
-
-def retrieve_from_kendra(query, top_k):
-    if kendra_method == 'kendra_retriever':
-        relevant_docs = retrieve_from_kendra_using_kendra_retriever(query, top_k)
-    else: 
-        relevant_docs = retrieve_from_kendra_using_custom_retriever(query, top_k)
-    
-    return relevant_docs
-
-def retrieve_from_kendra_using_kendra_retriever(query, top_k):
-    print(f"query: {query} (kendra)")
-
-    relevant_docs = []
-    relevant_documents = kendraRetriever.get_relevant_documents(
-        query=query,
-        top_k=top_k,
-    )
-    #print('length of relevant_documents: ', len(relevant_documents))
-    #print('relevant_documents: ', relevant_documents)
-
-    rag_type = "kendra"
-    api_type = "kendraRetriever"
-
-    for i, document in enumerate(relevant_documents):
-        #print('document.page_content:', document.page_content)
-        #print('document.metadata:', document.metadata)
-        print(f'## Document(retrieve_from_kendra_using_kendra_retriever) {i+1}: {document}')
-
-        result_id = document.metadata['result_id']
-        document_id = document.metadata['document_id']
-        title = document.metadata['title']
-        excerpt = document.metadata['excerpt']
-
-        uri = ""
-        if "_source_uri" in document.metadata['document_attributes']:
-            uri = document.metadata['document_attributes']['_source_uri']
-
-        page = ""
-        if "_excerpt_page_number" in document.metadata['document_attributes']:            
-            page = document.metadata['document_attributes']['_excerpt_page_number']
-
-        confidence = ""
-        assessed_score = ""
-            
-        if page:
-            doc_info = {
-                "rag_type": rag_type,
-                "api_type": api_type,
-                "confidence": confidence,
-                "metadata": {
-                    "document_id": document_id,
-                    "source": uri,
-                    "title": title,
-                    "excerpt": excerpt,
-                    "translated_excerpt": "",                    
-                    "document_attributes": {
-                        "_excerpt_page_number": page
-                    }
-                },
-                "assessed_score": assessed_score,
-                "result_id": result_id
-            }
-
-        else: 
-            doc_info = {
-                "rag_type": rag_type,
-                "api_type": api_type,
-                "confidence": confidence,
-                "metadata": {
-                    "document_id": document_id,
-                    "source": uri,
-                    "title": title,
-                    "excerpt": excerpt,
-                    "translated_excerpt": ""
-                },
-                "assessed_score": assessed_score,
-                "result_id": result_id
-            }
-            
-        relevant_docs.append(doc_info)
-    
-    return relevant_docs    
-    
-def retrieve_from_kendra_using_custom_retriever(query, top_k):
-    print(f"query: {query} (kendra)")
-
-    index_id = kendraIndex    
-    
-    kendra_client = boto3.client(
-        service_name='kendra', 
-        region_name=kendra_region,
-        config = Config(
-            retries=dict(
-                max_attempts=10
-            )
-        )
-    )
-
-    try:
-        resp =  kendra_client.retrieve(
-            IndexId = index_id,
-            QueryText = query,
-            PageSize = top_k,      
-            AttributeFilter = {
-                "EqualsTo": {      
-                    "Key": "_language_code",
-                    "Value": {
-                        "StringValue": "ko"
-                    }
-                },
-            },      
-        )
-        # print('retrieve resp:', json.dumps(resp))
-        query_id = resp["QueryId"]
-
-        if len(resp["ResultItems"]) >= 1:
-            relevant_docs = []
-            retrieve_docs = []
-            for query_result in resp["ResultItems"]:
-                retrieve_docs.append(extract_relevant_doc_for_kendra(query_id=query_id, api_type="retrieve", query_result=query_result))
-                # print('retrieve_docs: ', retrieve_docs)
-
-            print('Looking for FAQ...')
-            try:
-                resp =  kendra_client.query(
-                    IndexId = index_id,
-                    QueryText = query,
-                    PageSize = 4, # Maximum number of results returned for FAQ = 4 (default)
-                    QueryResultTypeFilter = "QUESTION_ANSWER",  # 'QUESTION_ANSWER', 'ANSWER', "DOCUMENT"
-                    AttributeFilter = {
-                        "EqualsTo": {      
-                            "Key": "_language_code",
-                            "Value": {
-                                "StringValue": "ko"
-                            }
-                        },
-                    },      
-                )
-                print('query resp:', json.dumps(resp))
-                query_id = resp["QueryId"]
-
-                if len(resp["ResultItems"]) >= 1:
-                    
-                    for query_result in resp["ResultItems"]:
-                        confidence = query_result["ScoreAttributes"]['ScoreConfidence']
-
-                        #if confidence == 'VERY_HIGH' or confidence == 'HIGH' or confidence == 'MEDIUM': 
-                        if confidence == 'VERY_HIGH' or confidence == 'HIGH': 
-                            relevant_docs.append(extract_relevant_doc_for_kendra(query_id=query_id, api_type="query", query_result=query_result))
-
-                            if len(relevant_docs) >= top_k:
-                                break
-                    # print('relevant_docs: ', relevant_docs)
-
-                else: 
-                    print('No result for FAQ')
-
-            except Exception:
-                err_msg = traceback.format_exc()
-                print('error message: ', err_msg)
-                raise Exception ("Not able to query from Kendra")
-
-            for doc in retrieve_docs:                
-                if len(relevant_docs) >= top_k:
-                    break
-                else:
-                    relevant_docs.append(doc)
-            
-        else:  # fallback using query API
-            print('No result for Retrieve API!')
-            try:
-                resp =  kendra_client.query(
-                    IndexId = index_id,
-                    QueryText = query,
-                    PageSize = top_k,
-                    AttributeFilter = {
-                        "EqualsTo": {      
-                            "Key": "_language_code",
-                            "Value": {
-                                "StringValue": "ko"
-                            }
-                        },
-                    },      
-                )
-                print('query resp:', resp)
-                query_id = resp["QueryId"]
-
-                if len(resp["ResultItems"]) >= 1:
-                    relevant_docs = []
-                    for query_result in resp["ResultItems"]:
-                        confidence = query_result["ScoreAttributes"]['ScoreConfidence']
-
-                        if confidence == 'VERY_HIGH' or confidence == 'HIGH' or confidence == 'MEDIUM': 
-                            relevant_docs.append(extract_relevant_doc_for_kendra(query_id=query_id, api_type="query", query_result=query_result))
-
-                            if len(relevant_docs) >= top_k:
-                                break
-                    # print('relevant_docs: ', relevant_docs)
-
-                else: 
-                    print('No result for Query API. Finally, no relevant docs!')
-                    relevant_docs = []
-
-            except Exception:
-                err_msg = traceback.format_exc()
-                print('error message: ', err_msg)
-                raise Exception ("Not able to query from Kendra")                
-
-    except Exception:
-        err_msg = traceback.format_exc()
-        print('error message: ', err_msg)        
-        raise Exception ("Not able to retrieve from Kendra")     
-
-    for i, rel_doc in enumerate(relevant_docs):
-        print(f'## Document(retrieve_from_kendra_using_kendra_retriever) {i+1}: {json.dumps(rel_doc)}')  
-
-    return relevant_docs
-
 def priority_search(query, relevant_docs, bedrock_embeddings):
     excerpts = []
     for i, doc in enumerate(relevant_docs):
@@ -906,103 +602,6 @@ def priority_search(query, relevant_docs, bedrock_embeddings):
 
     return docs
 
-def extract_relevant_doc_for_kendra(query_id, api_type, query_result):
-    rag_type = "kendra"
-    if(api_type == 'retrieve'): # retrieve API
-        excerpt = query_result["Content"]
-        confidence = query_result["ScoreAttributes"]['ScoreConfidence']
-        document_id = query_result["DocumentId"] 
-        document_title = query_result["DocumentTitle"]
-        
-        document_uri = ""
-        document_attributes = query_result["DocumentAttributes"]
-        for attribute in document_attributes:
-            if attribute["Key"] == "_source_uri":
-                document_uri = str(attribute["Value"]["StringValue"])        
-        if document_uri=="":  
-            document_uri = query_result["DocumentURI"]
-
-        doc_info = {
-            "rag_type": rag_type,
-            "api_type": api_type,
-            "confidence": confidence,
-            "metadata": {
-                "document_id": document_id,
-                "source": document_uri,
-                "title": document_title,
-                "excerpt": excerpt,
-                "translated_excerpt": ""
-            },
-            "assessed_score": "",
-        }
-            
-    else: # query API
-        query_result_type = query_result["Type"]
-        confidence = query_result["ScoreAttributes"]['ScoreConfidence']
-        document_id = query_result["DocumentId"] 
-        document_title = ""
-        if "Text" in query_result["DocumentTitle"]:
-            document_title = query_result["DocumentTitle"]["Text"]
-        document_uri = query_result["DocumentURI"]
-        feedback_token = query_result["FeedbackToken"] 
-
-        page = ""
-        document_attributes = query_result["DocumentAttributes"]
-        for attribute in document_attributes:
-            if attribute["Key"] == "_excerpt_page_number":
-                page = str(attribute["Value"]["LongValue"])
-
-        if query_result_type == "QUESTION_ANSWER":
-            question_text = ""
-            additional_attributes = query_result["AdditionalAttributes"]
-            for attribute in additional_attributes:
-                if attribute["Key"] == "QuestionText":
-                    question_text = str(attribute["Value"]["TextWithHighlightsValue"]["Text"])
-            answer = query_result["DocumentExcerpt"]["Text"]
-            excerpt = f"{question_text} {answer}"
-            excerpt = excerpt.replace("\n"," ") 
-        else: 
-            excerpt = query_result["DocumentExcerpt"]["Text"]
-
-        if page:
-            doc_info = {
-                "rag_type": rag_type,
-                "api_type": api_type,
-                "confidence": confidence,
-                "metadata": {
-                    "type": query_result_type,
-                    "document_id": document_id,
-                    "source": document_uri,
-                    "title": document_title,
-                    "excerpt": excerpt,
-                    "translated_excerpt": "",
-                    "document_attributes": {
-                        "_excerpt_page_number": page
-                    }
-                },
-                "assessed_score": "",
-                "query_id": query_id,
-                "feedback_token": feedback_token
-            }
-        else: 
-            doc_info = {
-                "rag_type": rag_type,
-                "api_type": api_type,
-                "confidence": confidence,
-                "metadata": {
-                    "type": query_result_type,
-                    "document_id": document_id,
-                    "source": document_uri,
-                    "title": document_title,
-                    "excerpt": excerpt,
-                    "translated_excerpt": "",
-                },
-                "assessed_score": "",
-                "query_id": query_id,
-                "feedback_token": feedback_token
-            }
-    return doc_info
-
 def get_reference(docs, path, doc_prefix):
     reference = "\n\nFrom\n"
     for i, doc in enumerate(docs):
@@ -1011,37 +610,7 @@ def get_reference(docs, path, doc_prefix):
         else:
             excerpt = str(doc['metadata']['excerpt']).replace('"'," ")
 
-        if doc['rag_type'] == 'kendra':                
-            if doc['api_type'] == 'kendraRetriever': # provided by kendraRetriever from langchain
-                name = doc['metadata']['title']
-                uri = doc['metadata']['source']
-                reference = reference + f"{i+1}. <a href={uri} target=_blank>{name}</a>, {doc['rag_type']} ({doc['assessed_score']}), <a href=\"#\" onClick=\"alert(`{excerpt}`)\">관련문서</a>\n"
-            elif doc['api_type'] == 'retrieve': # Retrieve. socre of confidence is only avaialbe for English
-                uri = doc['metadata']['source']
-                name = doc['metadata']['title']
-                reference = reference + f"{i+1}. <a href={uri} target=_blank>{name}</a>, {doc['rag_type']} ({doc['assessed_score']}), <a href=\"#\" onClick=\"alert(`{excerpt}`)\">관련문서</a>\n"
-            else: # Query
-                confidence = doc['confidence']
-                if ("type" in doc['metadata']) and (doc['metadata']['type'] == "QUESTION_ANSWER"):
-                    reference = reference + f"{i+1}. <a href=\"#\" onClick=\"alert(`{excerpt}`)\">FAQ ({confidence})</a>, {doc['rag_type']} ({doc['assessed_score']}), <a href=\"#\" onClick=\"alert(`{excerpt}`)\">관련문서</a>\n"
-                else:
-                    uri = ""
-                    if "title" in doc['metadata']:
-                        #print('metadata: ', json.dumps(doc['metadata']))
-                        name = doc['metadata']['title']
-                        if name: 
-                            uri = path+doc_prefix+parse.quote(name)
-
-                    page = ""
-                    if "document_attributes" in doc['metadata']:
-                        if "_excerpt_page_number" in doc['metadata']['document_attributes']:
-                            page = doc['metadata']['document_attributes']['_excerpt_page_number']
-                                                
-                    if page: 
-                        reference = reference + f"{i+1}. {page}page in <a href={uri} target=_blank>{name} ({confidence})</a>, {doc['rag_type']} ({doc['assessed_score']})\n"
-                    elif uri:
-                        reference = reference + f"{i+1}. <a href={uri} target=_blank>{name} ({confidence})</a>, {doc['rag_type']} ({doc['assessed_score']}), <a href=\"#\" onClick=\"alert(`{excerpt}`)\">관련문서</a>\n"
-        elif doc['rag_type'] == 'opensearch':
+        if doc['rag_type'] == 'opensearch':
             print(f'## Document(get_reference) {i+1}: {doc}')
                 
             page = ""
@@ -1127,49 +696,7 @@ def retrieve_from_vectorstore(query, top_k, rag_type):
 
     return relevant_docs
 
-def retrieve_process_from_RAG(conn, query, top_k, rag_type):
-    relevant_docs = []
-    if rag_type == 'kendra':
-        rel_docs = retrieve_from_kendra(query=query, top_k=top_k)      
-        print('rel_docs (kendra): '+json.dumps(rel_docs))
-    else:
-        rel_docs = retrieve_from_vectorstore(query=query, top_k=top_k, rag_type=rag_type)
-        print(f'rel_docs ({rag_type}): '+json.dumps(rel_docs))
 
-    if(len(rel_docs)>=1):
-        for doc in rel_docs:
-            relevant_docs.append(doc)  
-    
-    conn.send(relevant_docs)
-    conn.close()
-
-def get_relevant_documents_using_parallel_processing(question, top_k):
-    relevant_docs = []    
-
-    processes = []
-    parent_connections = []
-    for rag in capabilities:
-        parent_conn, child_conn = Pipe()
-        parent_connections.append(parent_conn)
-            
-        process = Process(target=retrieve_process_from_RAG, args=(child_conn, question, top_k, rag))
-        processes.append(process)
-
-    for process in processes:
-        process.start()
-            
-    for parent_conn in parent_connections:
-        rel_docs = parent_conn.recv()
-
-        if(len(rel_docs)>=1):
-            for doc in rel_docs:
-                relevant_docs.append(doc)    
-
-    for process in processes:
-        process.join()
-    
-    #print('relevant_docs: ', relevant_docs)
-    return relevant_docs
 
 def translate_process_from_relevent_doc(conn, llm, doc):
     translated_excerpt = traslation_to_korean(llm=llm, msg=doc['metadata']['excerpt'])
@@ -1227,14 +754,17 @@ def get_answer_using_RAG(llm, text, conv_type, connectionId, requestId, bedrock_
 
     relevant_docs = [] 
     print('start RAG for revised question')
-    relevant_docs = get_relevant_documents_using_parallel_processing(question=revised_question, top_k=top_k)
+
+    rag_type = 'opensearch'
+    relevant_docs = retrieve_from_vectorstore(query=revised_question, top_k=top_k, rag_type=rag_type)
+    print(f'relevant_docs ({rag_type}): '+json.dumps(relevant_docs))
 
     if allowDualSearching=='true' and isKorean(text)==True:
         print('start RAG for translated revised question')
         translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
         print('translated_revised_question: ', translated_revised_question)
 
-        relevant_docs_using_translated_question = get_relevant_documents_using_parallel_processing(question=translated_revised_question, top_k=4)
+        relevant_docs_using_translated_question = retrieve_from_vectorstore(query=translated_revised_question, top_k=4, rag_type=rag_type)
                     
         docs_translation_required = []
         if len(relevant_docs_using_translated_question)>=1:
@@ -1357,34 +887,6 @@ def get_answer_using_ConversationChain(text, conversation, conv_type, connection
         raise Exception ("Not able to request to LLM")
 
     return msg
-
-def create_metadata(bucket, key, meta_prefix, s3_prefix, uri, category, documentId):    
-    title = key
-    timestamp = int(time.time())
-
-    metadata = {
-        "Attributes": {
-            "_category": category,
-            "_source_uri": uri,
-            "_version": str(timestamp),
-            "_language_code": "ko"
-        },
-        "Title": title,
-        "DocumentId": documentId,        
-    }
-    print('metadata: ', metadata)
-
-    client = boto3.client('s3')
-    try: 
-        client.put_object(
-            Body=json.dumps(metadata), 
-            Bucket=bucket, 
-            Key=meta_prefix+s3_prefix+'/'+key+'.metadata.json' 
-        )
-    except Exception:
-        err_msg = traceback.format_exc()
-        print('error message: ', err_msg)        
-        raise Exception ("Not able to create meta file")
 
 def traslation_to_korean(llm, msg):
     PROMPT = """\n\nHuman: Here is an article, contained in <article> tags. Translate the article to Korean. Put it in <result> tags.
@@ -1623,15 +1125,9 @@ def getResponse(connectionId, jsonBody):
                 documentId = documentId.lower() # change to lowercase
                 print('documentId: ', documentId)
 
-                p1 = Process(target=store_document_for_kendra, args=(path, doc_prefix, object, documentId))
-                p1.start(); p1.join()
-                    
                 if file_type == 'pdf' or file_type == 'txt' or file_type == 'csv' or file_type == 'pptx' or file_type == 'docx':
-                    # opensearch
-                    p2 = Process(target=store_document_for_opensearch, args=(bedrock_embeddings, docs, userId, documentId,))
-                    p2.start(); p2.join()
+                    store_document_for_opensearch(bedrock_embeddings, docs, userId, documentId)
 
-                create_metadata(bucket=s3_bucket, key=key, meta_prefix=meta_prefix, s3_prefix=s3_prefix, uri=path+doc_prefix+parse.quote(object), category=category, documentId=documentId)
                 print('processing time: ', str(time.time() - start_time))
                         
         sendResultMessage(connectionId, requestId, msg+reference)
@@ -1640,11 +1136,12 @@ def getResponse(connectionId, jsonBody):
         elapsed_time = time.time() - start
         print("total run time(sec): ", elapsed_time)
 
-        if isKorean(msg)==False and (conv_type=='qa' or  conv_type == "normal"):
+        if isKorean(msg)==False and conv_type=='qa':
             translated_msg = traslation_to_korean(llm, msg)
             print('translated_msg: ', translated_msg)
 
             msg = msg+'\n[한국어]\n'+translated_msg
+            sendResultMessage(connectionId, requestId, msg+reference)
 
         item = {    # save dialog
             'user_id': {'S':userId},

@@ -8,12 +8,10 @@ from urllib.parse import unquote_plus
 s3 = boto3.client('s3')
 s3_bucket = os.environ.get('s3_bucket') # bucket name
 meta_prefix = "metadata/"
-kendra_region = os.environ.get('kendra_region', 'us-west-2')
 
 opensearch_account = os.environ.get('opensearch_account')
 opensearch_passwd = os.environ.get('opensearch_passwd')
 opensearch_url = os.environ.get('opensearch_url')
-kendraIndex = os.environ.get('kendraIndex')
 
 from opensearchpy import OpenSearch
 def delete_index_if_exist(index_name):
@@ -39,17 +37,6 @@ def delete_index_if_exist(index_name):
     else:
         print('no index: ', index_name)
 
-# Kendra
-kendra_client = boto3.client(
-    service_name='kendra', 
-    region_name=kendra_region,
-    config = Config(
-        retries=dict(
-            max_attempts=10
-        )
-    )
-)
-
 # load csv documents from s3
 def lambda_handler(event, context):
     print('event: ', event)
@@ -74,38 +61,10 @@ def lambda_handler(event, context):
         print('documentId: ', documentId)
         documentIds.append(documentId)
 
-        # delete metadata
-        print('delete metadata: ', metadata_key)
-        try: 
-            result = s3.delete_object(Bucket=bucket, Key=metadata_key)
-            # print('result of metadata deletion: ', result)
-        except Exception:
-            err_msg = traceback.format_exc()
-            print('err_msg: ', err_msg)
-            raise Exception ("Not able to delete documents in Kendra")
-  
         # delete document index of opensearch
         index_name = "rag-index-"+documentId
         # print('index_name: ', index_name)
         delete_index_if_exist(index_name)
-
-    # delete kendra documents
-    print('delete kendra documents: ', documentIds)
-    try: 
-        result = kendra_client.batch_delete_document(
-            IndexId = kendraIndex,
-            DocumentIdList=[
-                documentId,
-            ],
-            #DataSourceSyncJobMetricTarget={
-            #    'DataSourceId': '850d68bd-464e-4831-bc4a-ccc8c59d8fe1'
-            #}
-        )
-        print('result: ', result)
-    except Exception:
-        err_msg = traceback.format_exc()
-        print('err_msg: ', err_msg)
-        raise Exception ("Not able to delete documents in Kendra")
     
     return {
         'statusCode': 200

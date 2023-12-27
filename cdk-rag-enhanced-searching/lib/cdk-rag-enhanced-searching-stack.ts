@@ -13,7 +13,6 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as apigatewayv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as opensearch from 'aws-cdk-lib/aws-opensearchservice';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
-import * as kendra from 'aws-cdk-lib/aws-kendra';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 
@@ -23,14 +22,12 @@ const stage = 'dev';
 const s3_prefix = 'docs';
 const projectName = `rag-enhanced-searching`; 
 // const bucketName = `storage-for-${projectName}-${region}`; 
-let kendra_region = process.env.CDK_DEFAULT_REGION; 
 
 const opensearch_account = "admin";
 const opensearch_passwd = "Wifi1234!";
 const enableReference = 'true';
 let opensearch_url = "";
 const numberOfRelevantDocs = '4';
-const kendraMethod = "custom_retriever"; // custom_retriever or kendra_retriever
 const allowDualSearching='true'
 
 const claude_instance = JSON.stringify([
@@ -76,9 +73,6 @@ const claude_basic = JSON.stringify([
 ]);
 
 const profile_of_LLMs = claude_instance;
-
-//const capabilities = JSON.stringify(["kendra", "opensearch"]);
-const capabilities = JSON.stringify(["kendra"]);
 
 export class CdkRagEnhancedSearchingStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -165,7 +159,6 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
       assumedBy: new iam.CompositePrincipal(
         new iam.ServicePrincipal("lambda.amazonaws.com"),
         new iam.ServicePrincipal("bedrock.amazonaws.com"),
-        new iam.ServicePrincipal("kendra.amazonaws.com")
       )
     });
     roleLambdaWebsocket.addManagedPolicy({
@@ -194,88 +187,10 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
       }),
     );  
 
-    // Kendra  
-    let kendraIndex = "";
-    const roleKendra = new iam.Role(this, `role-kendra-for-${projectName}`, {
-      roleName: `role-kendra-for-${projectName}-${region}`,
-      assumedBy: new iam.CompositePrincipal(
-        new iam.ServicePrincipal("kendra.amazonaws.com")
-      )
-    });
-    const cfnIndex = new kendra.CfnIndex(this, 'MyCfnIndex', {
-      edition: 'DEVELOPER_EDITION',  // ENTERPRISE_EDITION, 
-      name: `reg-kendra-${projectName}`,
-      roleArn: roleKendra.roleArn,
-    }); 
-    const kendraLogPolicy = new iam.PolicyStatement({
-      resources: ['*'],
-      actions: ["logs:*", "cloudwatch:GenerateQuery"],
-    });
-    roleKendra.attachInlinePolicy( // add kendra policy
-      new iam.Policy(this, `kendra-log-policy-for-${projectName}`, {
-        statements: [kendraLogPolicy],
-      }),
-    );
-    const kendraS3ReadPolicy = new iam.PolicyStatement({
-      resources: ['*'],
-      actions: ["s3:Get*","s3:List*","s3:Describe*"],
-    });
-    roleKendra.attachInlinePolicy( // add kendra policy
-      new iam.Policy(this, `kendra-s3-read-policy-for-${projectName}`, {
-        statements: [kendraS3ReadPolicy],
-      }),
-    );    
-    new cdk.CfnOutput(this, `index-of-kendra-for-${projectName}`, {
-      value: cfnIndex.attrId,
-      description: 'The index of kendra',
-    }); 
-
-    const accountId = process.env.CDK_DEFAULT_ACCOUNT;
-    const kendraResourceArn = `arn:aws:kendra:${kendra_region}:${accountId}:index/${cfnIndex.attrId}`
-    if(debug) {
-      new cdk.CfnOutput(this, `resource-arn-of-kendra-for-${projectName}`, {
-        value: kendraResourceArn,
-        description: 'The arn of resource',
-      }); 
-    }           
-      
-    const kendraPolicy = new iam.PolicyStatement({  
-      resources: [kendraResourceArn],      
-      actions: ['kendra:*'],
-    });      
-    roleKendra.attachInlinePolicy( // add kendra policy
-      new iam.Policy(this, `kendra-inline-policy-for-${projectName}`, {
-        statements: [kendraPolicy],
-      }),
-    );      
-    kendraIndex = cfnIndex.attrId;
-
-    roleLambdaWebsocket.attachInlinePolicy( 
-      new iam.Policy(this, `lambda-inline-policy-for-kendra-in-${projectName}`, {
-        statements: [kendraPolicy],
-      }),
-    ); 
-
-    const passRoleResourceArn = roleLambdaWebsocket.roleArn;
-    const passRolePolicy = new iam.PolicyStatement({  
-      resources: [passRoleResourceArn],      
-      actions: ['iam:PassRole'],
-    });
-      
-    roleLambdaWebsocket.attachInlinePolicy( // add pass role policy
-      new iam.Policy(this, `pass-role-of-kendra-for-${projectName}`, {
-      statements: [passRolePolicy],
-      }), 
-    );  
-
-    new cdk.CfnOutput(this, `create-S3-data-source-for-${projectName}`, {
-      value: 'aws kendra create-data-source --index-id '+kendraIndex+' --name data-source-for-upload-file --type S3 --role-arn '+roleLambdaWebsocket.roleArn+' --configuration \'{\"S3Configuration\":{\"BucketName\":\"'+s3Bucket.bucketName+'\", \"DocumentsMetadataConfiguration\": {\"S3Prefix\":\"metadata/\"},\"InclusionPrefixes\": [\"'+s3_prefix+'/\"]}}\' --language-code ko --region '+kendra_region,
-      description: 'The commend to create data source using S3',
-    });
-
     // opensearch
     // Permission for OpenSearch
     const domainName = projectName
+    const accountId = process.env.CDK_DEFAULT_ACCOUNT;
     const resourceArn = `arn:aws:es:${region}:${accountId}:domain/${domainName}/*`
     if(debug) {
       new cdk.CfnOutput(this, `resource-arn-for-${projectName}`, {
@@ -598,7 +513,6 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
       role: roleLambdaWebsocket,
       environment: {
         // bedrock_region: bedrock_region,
-        kendra_region: String(kendra_region),
         // model_id: model_id,
         s3_bucket: s3Bucket.bucketName,
         s3_prefix: s3_prefix,
@@ -609,12 +523,9 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
         opensearch_passwd: opensearch_passwd,
         opensearch_url: opensearch_url,
         path: 'https://'+distribution.domainName+'/',   
-        kendraIndex: kendraIndex,
         roleArn: roleLambdaWebsocket.roleArn,
         numberOfRelevantDocs: numberOfRelevantDocs,
-        kendraMethod: kendraMethod,
         profile_of_LLMs:profile_of_LLMs,
-        capabilities: capabilities,
         googleApiSecret: googleApiSecret.secretName,
         allowDualSearching: allowDualSearching
       }
@@ -684,16 +595,10 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
         opensearch_account: opensearch_account,
         opensearch_passwd: opensearch_passwd,
         opensearch_url: opensearch_url,
-        kendraIndex: kendraIndex,
         roleArn: roleLambdaWebsocket.roleArn,
       }
     });         
     s3Bucket.grantReadWrite(lambdaS3event); // permission for s3
-    lambdaS3event.role?.attachInlinePolicy(
-      new iam.Policy(this, `kendra-policy-${projectName}`, {
-        statements: [kendraPolicy],
-      }),
-    ) 
 
     // s3 event source
     const s3PutEventSource = new lambdaEventSources.S3EventSource(s3Bucket, {
