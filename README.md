@@ -211,7 +211,7 @@ Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 �
 pip install google-api-python-client
 ```
 
-Google Search API를 사용하기 위해서는 [api_key](https://developers.google.com/custom-search/docs/paid_element?hl=ko#api_key)와 [검색엔진 ID](https://programmablesearchengine.google.com/controlpanel/create?hl=ko)가 필요합니다. 이 키들을 안전하게 활용하기 위하여 [dk-rag-enhanced-searching-stack.ts](./cdk-rag-enhanced-searching/lib/cdk-rag-enhanced-searching-stack.ts)와 같이 [AWS Secret Manager](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html)를 이용합니다. 
+Google Search API를 사용하기 위해서는 [api_key](https://developers.google.com/custom-search/docs/paid_element?hl=ko#api_key)와 [검색엔진 ID](https://programmablesearchengine.google.com/controlpanel/create?hl=ko)가 필요합니다. 이 키들을 안전하게 활용하기 위하여 [cdk-rag-enhanced-searching-stack.ts](./cdk-rag-enhanced-searching/lib/cdk-rag-enhanced-searching-stack.ts)와 같이 [AWS Secret Manager](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html)를 이용합니다. 
 
 ```typescript
 const googleApiSecret = new secretsmanager.Secret(this, `google-api-secret-for-${projectName}`, {
