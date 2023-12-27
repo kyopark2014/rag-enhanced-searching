@@ -40,7 +40,7 @@ RAG는 지식 저장소에서 추출한 관련된 문서들(Relevant documents)�
 
 ## 한영 동시 검색
 
-새로운 질문(revised question)을 영어로 변환한 후에, 번역된 새로운 질문(translated_revised_question)을 이용하여 RAG의 지식저장소의 관련된 문서(Relevant Documents)을 조회합니다. 이후, 영어로된 관련된 문서(Relevant Document)가 있으면, 한국어로 변역한 후에 한국어 검색으로 얻어진 결과(relevant_docs)에 추가합니다. 
+새로운 질문(revised question)을 영어로 변환한 후에, 번역된 새로운 질문(translated_revised_question)을 이용하여 RAG의 지식저장소의 관련된 문서(Relevant Documents)을 조회합니다. 이후, 영어로된 관련된 문서(Relevant Document)가 있으면, 한국어로 변역한 후에 한국어 검색으로 얻어진 결과(relevant_docs)에 추가합니다. 상세한 내용은 [lambda(chat)](./lambda-chat-ws/lambda_function.py)
 
 ```python
 translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
@@ -204,7 +204,7 @@ def readStreamMsg(connectionId, requestId, stream):
 
 ### Google Search API를 이용한 검색기능
 
-Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. Google Search API를 사용하기 위해서는 아래와 같이 클라이언트를 설치하여야 합니다. 
+Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. Google Search API를 사용하기 위해서는 아래와 같이 클라이언트를 설치하여야 합니다. 상세한 내용은 [lambda(chat)](./lambda-chat-ws/lambda_function.py)
 
 ```text
 pip install google-api-python-client
@@ -273,7 +273,7 @@ try:
 
 ### 영어로 질문시 한글 결과를 같이 보여주기
 
-결과가 한국어/영어인것을 확인하여, 한국어가 아니라면 LLM을 통해 영어로 번역을 수행합니다. 결과는 영어와 함께 한국어 번역을 보여줍니다.
+[lambda(chat)](./lambda-chat-ws/lambda_function.py)와 같이 결과가 한국어/영어인 것을 확인하여, 한국어가 아니라면 LLM을 통해 영어로 번역을 수행합니다. 결과는 영어와 함께 한국어 번역을 보여줍니다.
 
 ```python
 if isKorean(msg)==False:
