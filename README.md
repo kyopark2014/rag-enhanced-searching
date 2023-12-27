@@ -331,14 +331,10 @@ def traslation_to_korean(llm, msg):
 
 ### 실행결과
 
-"Retrieval Augmented Generation에 대해 설명해줘."로 입력하면, RAG에 문서가 없으므로 인터넷 검색을 통해 얻어온 결과를 보여줍니다. 
+"Retrieval Augmented Generation에 대해 설명해줘."로 입력하면, RAG에 문서가 없으므로 인터넷 검색을 통해 얻어온 결과를 보여줍니다. 대용량 언어 모델(LLM)의 특성 및 구글 검색 결과의 차이에 의해 실습의 답변은 아래 화면과 조금 다를 수 있습니다. 
 ![image](https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/b0a09358-569c-4a57-bf71-1bc25eb71a3f)
 
-대용량 언어 모델(LLM)의 특성 및 구글 검색 결과의 차이에 의해 실습의 답변은 상기 화면과 조금 다를 수 있습니다. 
-
-[RAG.pdf](./contents/RAG.pdf) 파일을 다운로드한 후에 채팅화면 하단의 파일 아이콘을 선택하여 업로드 합니다.
-
-"Retrieval Augmented Generation에 대해 설명해줘."을 다시 입력하면, 영어로 된 RAG의 문서를 참조하여 한국어로 답변하였음을 알 수 있습니다.
+[RAG.pdf](./contents/RAG.pdf) 파일을 다운로드한 후에 채팅화면 하단의 파일 아이콘을 선택하여 업로드 합니다. "Retrieval Augmented Generation에 대해 설명해줘."을 다시 입력하면, 영어로 된 RAG의 문서를 참조하여 한국어로 답변하였음을 알 수 있습니다.
 
 ![image](https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/7b8bbf20-f5c9-464a-802a-cdd9ef61823e)
 
@@ -360,6 +356,7 @@ cd ~/environment/rag-enhanced-searching/cdk-rag-enhanced-searching/ && cdk destr
 
 ## 결론
 
+기업의 데이터를 쉽게 검색하고 편리하게 활용할 수 있도록 한국어/영어 문서들에 대한 한국어 RAG 검색 방법에 대해 설명하였습니다. 한국어/영어 문서를 통합하기 위하여 영어로 추가 RAG 검색을 수행하고 얻어진 결과를 LLM으로 번역하여 한국어 결과가 나오도록 통합하였습니다. 이때  Multi-LLM을 활용하여 질문과 답변사이의 지연시간을 최소화 하였습니다. RAG로 관련된 문서들이 검색되지 않은 경우에는 인터넷 검색을 활용하여 사용성을 향상시키는 방법을 설명하였습니다. 이와같이 RAG의 검색 기능을 강화하고 한영 문서를 한번에 검색할 수 있도록 RAG의 사용성을 개선할 수 있습니다. RAG는 기업의 데이터를 안전하고 편리하게 활용할 수 있는 유용한 기술입니다. Foundation Model 기반의 LLM은 기존 Chatbot이 제공하지 못하는 자연스러운 대화를 제공하고, RAG를 통해 기업의 중요한 데이터를 편리하고 안전하게 사용할 수 있도록 해줍니다. 
 
 
 ## 실습 코드 및 도움이 되는 참조 블로그
