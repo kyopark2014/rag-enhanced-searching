@@ -21,7 +21,8 @@ RAG는 지식저장소에서 관련된문서들(Relevant documents)를 추출하
 
 아래는 한영 동시 검색 및 인터넷 검색을 활용할 수 있는 Architecture를 보여주고 있습니다. 
 
-<img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/f7590d5d-b37d-492b-9bc3-1d4a1b76fff7" width="800">
+<img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/92f90bff-6714-4029-83e7-9a57bfcf2acb" width="800">
+
 
 사용자의 요청은 [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)를 통해 전달되고, [AWS Lambda](https://docs.aws.amazon.com/lambda/)를 통해 질문을 통해 처리됩니다. 한영 동시 검색을 위해 다수의 문서를 번역하여야 하므로 지연시간을 단축시키기 위하여 Multi-Region LLM을 활용합니다. 여기서는 us-east-1, us-west-2, ap-northeast-1, us-central-1의 Bedrock을 활용합니다. RAG의 지식저장소로는 [Amazon OpenSearch](https://aws.amazon.com/ko/opensearch-service/features/)와 [Amazon Kendra](https://docs.aws.amazon.com/kendra/latest/dg/what-is-kendra.html)를 활용합니다. OpenSearch는 매우 빠르고 좋은 성능의 검색 능력을 제공할 수 있고, Kendra는 다양한 데이터 소스를 활용하여 많은 데이터를 쉽게 모으고 관리할 수 있습니다. Multi-RAG를 조회시간을 단축하기 위하여 다중 Thread를 활용하여 동시에 조회를 수행합니다. 사용자와 Chatbot의 대화이력은 [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)에 저장되고, 원할한 대화를 위해 활용됩니다. 또한, 여러개의 관련된 문서가 있으면, 문서의 우선순위를 정하여서 관련도가 높은 문서를 선택하여야 하여 상단에 놓을수 있어야 합니다. [Faiss의 Similarity Search](https://github.com/facebookresearch/faiss)를 활용하여 Reranking 하도록 우선성 검색(Priority Search)을 하면 소수의 문서에 대한 Embedding이 필요하지만, 정략적으로 사용할 수 있는 점수(score)로 관련성 있는 문서를 선택 및 정렬할 수 있습니다. 또한 Lambda의 process와 memory를 활용하므로 별도로 비용이 추가되지 않습니다. 
 
@@ -37,9 +38,7 @@ RAG는 지식저장소에서 관련된문서들(Relevant documents)를 추출하
 8. 관련도가 일정이하인 문서는 버리므로, 한개의 RAG의 문서도 선택되지 않을 수 있습니다. 이때에는 Google Seach API를 통해 인터넷 검색을 수행하고 하고, 이때 얻어진 문서들을 RAG처럼 Priority Search를 하여 선택한 후에 RAG 처럼 활용할 수 있습니다.
 9. 선택된 관련된 문서들(Selected relevant documents)로 Context를 생성한 후에 새로운 질문(Revised question)과 함께 LLM에 전달하여 사용자의 질문에 대한 답변을 생성하여 사용자에게 전달합니다.
 
-<img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/7cb0827c-1c55-4ef0-9f83-5e9c6fbe146a" width="900">
-
-
+<img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/87a3c32f-4b15-4847-9eea-e6665e7d7078" width="900">
 
 ## 한영 Dual Search
 
