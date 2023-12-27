@@ -211,7 +211,26 @@ Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 �
 pip install google-api-python-client
 ```
 
-Google Search API를 사용하기 위해서는 [api_key](https://developers.google.com/custom-search/docs/paid_element?hl=ko#api_key)와 [검색엔진 ID](https://programmablesearchengine.google.com/controlpanel/create?hl=ko)가 필요합니다. 결과의 assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다.
+Google Search API를 사용하기 위해서는 [api_key](https://developers.google.com/custom-search/docs/paid_element?hl=ko#api_key)와 [검색엔진 ID](https://programmablesearchengine.google.com/controlpanel/create?hl=ko)가 필요합니다. 이 키들을 안전하게 활용하기 위하여 [dk-rag-enhanced-searching-stack.ts](./cdk-rag-enhanced-searching/lib/cdk-rag-enhanced-searching-stack.ts)와 같이 [AWS Secret Manager](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html)를 이용합니다. 
+
+```typescript
+const googleApiSecret = new secretsmanager.Secret(this, `google-api-secret-for-${projectName}`, {
+    description: 'secret for google api key',
+    removalPolicy: cdk.RemovalPolicy.DESTROY,
+    secretName: 'googl_api_key',
+    generateSecretString: {
+        secretStringTemplate: JSON.stringify({
+            google_cse_id: 'cse_id'
+        }),
+        generateStringKey: 'google_api_key',
+        excludeCharacters: '/@"',
+    },
+
+});
+googleApiSecret.grantRead(roleLambdaWebsocket) 
+```
+
+Google Search API는 [googleapiclient.discovery](https://googleapis.github.io/google-api-python-client/docs/epy/googleapiclient.discovery-module.html)로 새로운 질문(revised question)을 전달하고 아래와 같이 결과를 추출합니다. 이때, assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다.
 
 
 ```python
