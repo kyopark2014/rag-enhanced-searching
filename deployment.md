@@ -84,5 +84,6 @@ cdk deploy --all
 
 [Secret Console](https://ap-northeast-1.console.aws.amazon.com/secretsmanager/secret?name=googl_api_key&region=ap-northeast-1)에 접속하여 [Retrieve secret value]를 선택하여, google_api_key와 google_cse_id를 업데이트합니다.
 
-10) WebUrl를 선택하여 브라우저로 접속합니다.
+10) Output의 WebUrlforragenhancedsearching 있는 URL을 복사하여 웹 브라우저로 접속합니다. User Id로 적당한 이름을 넣고, Conversation Type로는 "2. Question/Answering (RAG)"를 선택합니다.
 
+![noname](https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/689445d3-d4a1-4b2e-9390-303b0404c99b)
