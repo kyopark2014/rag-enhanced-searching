@@ -38,7 +38,7 @@ RAG는 지식저장소에서 관련된문서들(Relevant documents)를 추출하
 8. 관련도가 일정이하인 문서는 버리므로, 한개의 RAG의 문서도 선택되지 않을 수 있습니다. 이때에는 Google Seach API를 통해 인터넷 검색을 수행하고 하고, 이때 얻어진 문서들을 RAG처럼 Priority Search를 하여 선택한 후에 RAG 처럼 활용할 수 있습니다.
 9. 선택된 관련된 문서들(Selected relevant documents)로 Context를 생성한 후에 새로운 질문(Revised question)과 함께 LLM에 전달하여 사용자의 질문에 대한 답변을 생성하여 사용자에게 전달합니다.
 
-<img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/87a3c32f-4b15-4847-9eea-e6665e7d7078" width="900">
+<img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/d9712d40-6e17-4768-a23e-70f4675629db" width="1000">
 
 ## 한영 Dual Search
 
