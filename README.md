@@ -317,7 +317,7 @@ def traslation_to_korean(llm, msg):
 
 대용량 언어 모델(LLM)의 특성 및 구글 검색 결과의 차이에 의해 실습의 답변은 상기 화면과 조금 다를 수 있습니다. 
 
-RAG.pdf 파일을 다운로드한 후에 채팅화면 하단의 파일 아이콘을 선택하여 업로드 합니다.
+[RAG.pdf](./contents/RAG.pdf) 파일을 다운로드한 후에 채팅화면 하단의 파일 아이콘을 선택하여 업로드 합니다.
 
 "Retrieval Augmented Generation에 대해 설명해줘."을 다시 입력하면, 영어로 된 RAG의 문서를 참조하여 한국어로 답변하였음을 알 수 있습니다.
 
