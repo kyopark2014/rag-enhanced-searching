@@ -1,4 +1,4 @@
-# AWS CDK 인프라 설치하기
+# AWS CDK 인프라 설치하기
 
 Bedrock의 LLM profile을 정의합니다. 
 
