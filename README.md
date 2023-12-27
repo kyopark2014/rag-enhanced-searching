@@ -33,14 +33,14 @@ RAG는 지식 저장소에서 추출한 관련된 문서들(Relevant documents)�
 5. 번역된 새로운 질문(translated revised question)을 이용하여 다시 OpenSearch에 질문합니다.
 6. 번역된 질문으로 얻은 관련된 문서가 영어 문서 일 경우에, LLM을 통해 번역을 수행합니다. 관련된 문서가 여러개이므로 Multi-Region의 LLM들을 활용하여 지연시간을 최소화 합니다.
 7. 한국어 질문으로 얻은 N개의 관련된 문서와, 영어로 된 N개의 관련된 문서의 합은 최대 2xN개입니다. 이 문서를 가지고 Context Window 크기에 맞도록 문서를 선택합니다. 이때 관련되가 높은 문서가 Context의 상단에 가도록 배치합니다.
-8. 관련도가 일정이하인 문서는 버리므로, 한개의 RAG의 문서도 선택되지 않을 수 있습니다. 이때에는 Google Seach API를 통해 인터넷 검색을 수행하고, 이때 얻어진 문서들을 Priority Search를 하여 관련도가 일정 이상의 결과를 RAG에서 활용합니다. 
+8. 관련도가 일정 이하인 문서는 버리므로, 한개의 RAG의 문서도 선택되지 않을 수 있습니다. 이때에는 Google Seach API를 통해 인터넷 검색을 수행하고, 이때 얻어진 문서들을 Priority Search를 하여 관련도가 일정 이상의 결과를 RAG에서 활용합니다. 
 9. 선택된 관련된 문서들(Selected relevant documents)로 Context를 생성한 후에 새로운 질문(Revised question)과 함께 LLM에 전달하여 사용자의 질문에 대한 답변을 생성합니다.
     
 <img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/d9712d40-6e17-4768-a23e-70f4675629db" width="1000">
 
 ## 한영 동시 검색
 
-새로운 질문(revised question)을 영어로 변환합니다. 영어와 한글 문서를 모두 가지고 있는 지식 저장소(Knowlege Store)는 한국어 문서도 관련 문서로 제공할 수 있으므로, 영어로된 관련된 문서(Relevant Document)를 찾아서 한국어로 변환합니다. 이후, 한국어 검색으로 얻어진 결과에 추가합니다. 이렇게 되면 한국어로 검색했을때보다 최대 2배의 관련된 문서들(Relevant Documents)을 가지게 됩니다. 
+새로운 질문(revised question)을 영어로 변환한 후에, 번역된 새로운 질문(translated_revised_question)을 이용하여 RAG의 지식저장소의 관련된 문서(Relevant Documents)을 조회합니다. 이후, 영어로된 관련된 문서(Relevant Document)가 있으면, 한국어로 변역한 후에 한국어 검색으로 얻어진 결과(relevant_docs)에 추가합니다. 
 
 ```python
 translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
@@ -78,7 +78,7 @@ def traslation_to_english(llm, msg):
     return translated_msg[translated_msg.find('<result>')+9:len(translated_msg)-10]
 ```
 
-영어로 번역된 질문으로 조회한 관련된 문서의 숫자만큼 한국어 번역이 필요합니다. 지연시간을 줄이기 위해, 아래와 같이 4개의 Multi-Region을 활용하여 RAG 문서를 한국어로 번역합니다. 이를 위해, 영어로 질문을 한 후에 얻어진 문서들에서만 번역이 필요한 리스트를 추출하고, 이후 multi thread를 이용하여 각 리전의 LLM에 번역을 요청합니다. 
+영어로된 관련문서를 번역할때의 지연시간을 줄이기 위해 아래와 같이 multi thread를 이용합니다. 아래에서는 4개의 Multi-Region Profile을 활용하여 4개의 LLM으로 RAG 문서를 한국어로 번역합니다. 이를 위해, 영어로 관련문서 리스트를 추출하고, 각 리전의 LLM에 병렬로 번역을 요청합니다.
 
 ```python
 def translate_relevant_documents_using_parallel_processing(docs):
