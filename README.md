@@ -170,7 +170,7 @@ def priority_search(query, relevant_docs, bedrock_embeddings):
     return docs
 ```            
 
-선택된 관련문서를 이용해 Prompt를 생성한 후에 LLM에 질의하여 영한 검색을 통한 결과를 얻을 수 있습니다. 관련된 문서에 번역된 발취문(translated_excerpt)이 있으면 Context에 포함하여 Prompt를 구성합니다. 결과는 아래처럼 Stream으로 사용자에게 보여줍니다.
+선택된 관련 문서(selected_relevant_docs)를 이용해 Prompt를 생성한 후에 LLM에 질의하여 영한 검색을 통한 결과를 얻을 수 있습니다. 관련된 문서에 번역된 발취문(translated_excerpt)이 있으면 Context에 포함하여 Prompt를 구성합니다. 결과는 아래처럼 Stream으로 사용자에게 보여줍니다.
 
 ```python
 relevant_context = ""
