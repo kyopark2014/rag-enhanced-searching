@@ -41,7 +41,7 @@ RAG는 지식 저장소에서 추출한 관련된 문서들(Relevant documents)�
 
 ## 한영 동시 검색
 
-새로운 질문(revised question)을 먼저 영어로 변환하여 Mult-RAG를 통해 조회합니다. 영어와 한글 문서를 모두 가지고 있는 지식 저장소(Knowlege Store)는 한국어 문서도 관련 문서로 제공할 수 있으므로, 영어로된 관련된 문서(Relevant Document)를 찾아서 한국어로 변환합니다. 이후, 한국어 검색으로 얻어진 결과에 추가합니다. 이렇게 되면 한국어로 검색했을때보다 2배의 관련된 문서들을 가지게 됩니다. 
+새로운 질문(revised question)을 영어로 변환합니다. 영어와 한글 문서를 모두 가지고 있는 지식 저장소(Knowlege Store)는 한국어 문서도 관련 문서로 제공할 수 있으므로, 영어로된 관련된 문서(Relevant Document)를 찾아서 한국어로 변환합니다. 이후, 한국어 검색으로 얻어진 결과에 추가합니다. 이렇게 되면 한국어로 검색했을때보다 2배의 관련된 문서들을 가지게 됩니다. 
 
 ```python
 translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
@@ -59,6 +59,24 @@ if len(relevant_docs_using_translated_question)>=1:
     translated_docs = translate_relevant_documents_using_parallel_processing(docs_translation_required)
     for i, doc in enumerate(translated_docs):
         relevant_docs.append(doc)
+
+def traslation_to_english(llm, msg):
+    PROMPT = """\n\nHuman: 다음의 <article>를 English로 번역하세요. 머리말은 건너뛰고 본론으로 바로 들어가주세요. 또한 결과는 <result> tag를 붙여주세요.
+
+    <article>
+    {input}
+    </article>
+                        
+    Assistant:"""
+
+    try: 
+        translated_msg = llm(PROMPT.format(input=msg))
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)        
+        raise Exception ("Not able to translate the message")
+    
+    return translated_msg[translated_msg.find('<result>')+9:len(translated_msg)-10]
 ```
 
 그런데, 영어로 번역된 질문으로 조회한 Relevant Document의 숫자만큰 한국어로 번역이 필요하므로 프로세싱 시간이 관련된 문서수만큼 증가하는 이슈가 발생합니다. 이는 사용성을 저하 시키므로 개선이 필요합니다. 여기에서는 Multi-Region LLM을 활용하여 4개의 리전의 LLM을 활용하여 RAG 문서를 한국어로 번역하는 시간을 줄입니다. 아래와 같이 영어로 질문을 한 후에 얻어진 문서들에서 번역이 필요한 리스트를 추출합니다. 이후 multi thread를 이용하여 각 리전으로 LLM에 번역을 요청합니다. 
@@ -174,29 +192,7 @@ msg = readStreamMsg(connectionId, requestId, stream)
 
 
 
-### 영어로 얻어진 문장을 한국어로 번역
 
-
-
-```python
-def traslation_to_english(llm, msg):
-    PROMPT = """\n\nHuman: 다음의 <article>를 English로 번역하세요. 머리말은 건너뛰고 본론으로 바로 들어가주세요. 또한 결과는 <result> tag를 붙여주세요.
-
-    <article>
-    {input}
-    </article>
-                        
-    Assistant:"""
-
-    try: 
-        translated_msg = llm(PROMPT.format(input=msg))
-    except Exception:
-        err_msg = traceback.format_exc()
-        print('error message: ', err_msg)        
-        raise Exception ("Not able to translate the message")
-    
-    return translated_msg[translated_msg.find('<result>')+9:len(translated_msg)-10]
-```
 
 ### Google Search API를 이용한 검색기능
 
