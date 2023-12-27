@@ -31,7 +31,7 @@ const enableReference = 'true';
 let opensearch_url = "";
 const numberOfRelevantDocs = '4';
 const kendraMethod = "custom_retriever"; // custom_retriever or kendra_retriever
-const allowDualSearching='false'
+const allowDualSearching='true'
 
 const claude_instance = JSON.stringify([
   {
@@ -77,8 +77,8 @@ const claude_basic = JSON.stringify([
 
 const profile_of_LLMs = claude_instance;
 
-//const capabilities = JSON.stringify(["kendra", "opensearch"]);
-const capabilities = JSON.stringify(["opensearch"]);
+const capabilities = JSON.stringify(["kendra", "opensearch"]);
+//const capabilities = JSON.stringify(["opensearch"]);
 
 export class CdkRagEnhancedSearchingStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
