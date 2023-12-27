@@ -41,7 +41,7 @@ RAG는 지식 저장소에서 추출한 관련된 문서들(Relevant documents)�
 
 ## 한영 동시 검색
 
-새로운 질문(revised question)을 영어로 변환합니다. 영어와 한글 문서를 모두 가지고 있는 지식 저장소(Knowlege Store)는 한국어 문서도 관련 문서로 제공할 수 있으므로, 영어로된 관련된 문서(Relevant Document)를 찾아서 한국어로 변환합니다. 이후, 한국어 검색으로 얻어진 결과에 추가합니다. 이렇게 되면 한국어로 검색했을때보다 2배의 관련된 문서들을 가지게 됩니다. 
+새로운 질문(revised question)을 영어로 변환합니다. 영어와 한글 문서를 모두 가지고 있는 지식 저장소(Knowlege Store)는 한국어 문서도 관련 문서로 제공할 수 있으므로, 영어로된 관련된 문서(Relevant Document)를 찾아서 한국어로 변환합니다. 이후, 한국어 검색으로 얻어진 결과에 추가합니다. 이렇게 되면 한국어로 검색했을때보다 최대 2배의 관련된 문서들(Relevant Documents)을 가지게 됩니다. 
 
 ```python
 translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
@@ -79,7 +79,7 @@ def traslation_to_english(llm, msg):
     return translated_msg[translated_msg.find('<result>')+9:len(translated_msg)-10]
 ```
 
-그런데, 영어로 번역된 질문으로 조회한 Relevant Document의 숫자만큰 한국어로 번역이 필요하므로 프로세싱 시간이 관련된 문서수만큼 증가하는 이슈가 발생합니다. 이는 사용성을 저하 시키므로 개선이 필요합니다. 여기에서는 Multi-Region LLM을 활용하여 4개의 리전의 LLM을 활용하여 RAG 문서를 한국어로 번역하는 시간을 줄입니다. 아래와 같이 영어로 질문을 한 후에 얻어진 문서들에서 번역이 필요한 리스트를 추출합니다. 이후 multi thread를 이용하여 각 리전으로 LLM에 번역을 요청합니다. 
+영어로 번역된 질문으로 조회한 관련된 문서의 숫자만큼 한국어 번역이 필요합니다. 지연시간을 줄이기 위해, 아래와 같이 4개의 Multi-Region을 활용하여 RAG 문서를 한국어로 번역합니다. 이를 위해, 영어로 질문을 한 후에 얻어진 문서들에서만 번역이 필요한 리스트를 추출하고, 이후 multi thread를 이용하여 각 리전의 LLM에 번역을 요청합니다. 
 
 ```python
 def translate_relevant_documents_using_parallel_processing(docs):
