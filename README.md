@@ -14,7 +14,7 @@ RAG의 지식 저장소(Knowledge Store)에 한국어와 영어로 된 문서들
 
 2) 한국어로 질문시, 한국어뿐 아니라 영어로도 검색하여 얻어진 문서들을 하나로 통합하여 보여줍니다.
    
-본 게시글에서는 한국어 질문(Question)을 영어로 번역하고, 영어로 된 관련 문서들(Relevant Documents)을 한국어로 번역합니다. 또한, 관련된 문서들을 LLM의 Context window 크기에 맞게 관련도가 높은 순서대로 배치합니다. 아래의 Architecture는 RAG를 이용하여 한국어와 영어로 된 문서들을 조회하고 이를 번역하는데, 질문/답변 사이의 지연시간을 최대한 줄일 수 있도록, Multi-LLM 구조를 적용하였습니다. 이를 통해, 한국어 질문시에 한국어와 영어 문서를 모두 참조한 결과를 사용자에게 제공할 수 있습니다.  
+본 게시글에서는 한국어 질문(Question)을 영어로 번역하고, 영어로 된 관련 문서들(Relevant Documents)을 한국어로 번역합니다. 또한, 관련된 문서들을 LLM의 Context Window 크기에 맞게 관련도가 높은 순서대로 배치합니다. 아래의 Architecture는 RAG를 이용하여 한국어와 영어로 된 문서들을 조회하고 이를 번역하는데, 질문/답변 사이의 지연시간을 최대한 줄일 수 있도록, Multi-LLM 구조를 적용하였습니다. 이를 통해, 한국어 질문시에 한국어와 영어 문서를 모두 참조한 결과를 사용자에게 제공할 수 있습니다.  
 
 RAG는 지식 저장소에서 추출한 관련된 문서들(Relevant documents)로 Context를 생성하고 이를 기반으로 질문에 대한 답변을 생성합니다. 따라서, Context에 없는 내용을 질문하게 되면 모른다고 답변하여야 합니다. 이는 매우 정상적인 RAG 동작이지만, 인터넷으로 쉽게 검색되는 내용을 모른다고 하는것은 어플리케이션에 따라서 사용성이 좋지 않을 수 있습니다. 이와 같이 본 게시글에서는 RAG에 관련된 문서가 없는 경우에 인터넷 검색을 통해 얻은 내용을 마치 RAG처럼 활용합니다. 
 
@@ -22,11 +22,11 @@ RAG는 지식 저장소에서 추출한 관련된 문서들(Relevant documents)�
 
 <img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/37c46576-9ac0-4bc8-8f14-3aedabb71793" width="800">
 
-사용자의 요청은 [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)를 통해 전달되고, [AWS Lambda](https://docs.aws.amazon.com/lambda/)를 통해 질문을 통해 처리됩니다. 한영 동시 검색을 위해 다수의 문서를 번역하여야 하므로 지연시간을 단축시키기 위하여 Multi-Region LLM을 활용합니다. 여기서는 us-east-1, us-west-2, ap-northeast-1, us-central-1의 Bedrock LLM을 활용합니다. RAG의 지식저장소로는 [Amazon OpenSearch](https://aws.amazon.com/ko/opensearch-service/features/)를 활용합니다. OpenSearch는 매우 빠르고 좋은 성능의 검색 능력을 제공할 수 있습니다. 사용자와 Chatbot의 대화이력은 [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)에 저장되고, 원할한 대화를 위해 활용됩니다. 또한, 여러개의 관련된 문서가 있으면, 문서의 우선순위를 정하여서 관련도가 높은 문서를 선택하여야 하여 상단에 놓을수 있어야 합니다. [Faiss의 Similarity Search](https://github.com/facebookresearch/faiss)를 활용하여 Reranking 하도록 우선성 검색(Priority Search)을 하면 소수의 문서에 대한 Embedding이 필요하지만, 점수(score)를 이용해 정량적으로 문서의 관련성을 표현할 수 있습니다. 또한 Lambda의 process와 memory를 활용하므로 별도로 비용이 추가되지 않습니다. 
+사용자의 요청은 [Amazon API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)를 통해 전달되고, [AWS Lambda](https://docs.aws.amazon.com/lambda/)를 통해 질문을 통해 처리됩니다. 한영 동시 검색을 위해 다수의 문서를 번역하여야 하므로 지연시간을 단축시키기 위하여 Multi-Region LLM을 활용합니다. 여기서는 us-east-1, us-west-2, ap-northeast-1, us-central-1의 Bedrock LLM을 활용합니다. RAG의 지식 저장소로는 [Amazon OpenSearch](https://aws.amazon.com/ko/opensearch-service/features/)를 활용합니다. OpenSearch는 매우 빠르고 좋은 성능의 검색 능력을 제공할 수 있습니다. 사용자와 Chatbot의 대화이력은 [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)에 저장되고, 원할한 대화를 위해 활용됩니다. 또한, 여러개의 관련된 문서가 있으면, 문서의 우선순위를 정하여서 관련도가 높은 문서를 선택할 수 있어야 합니다. [Faiss의 Similarity Search](https://github.com/facebookresearch/faiss)를 활용하여 Reranking 하도록 우선성 검색(Priority Search)을 하면 소수의 문서에 대한 Embedding이 필요하지만 점수(score)를 이용해 정량적으로 문서의 관련성을 표현할 수 있습니다. 또한 Faiss는 Lambda의 process와 memory를 활용하므로 별도로 비용이 추가되지 않습니다. 
 
 이때의 상세한 Signal Flow는 아래와 같습니다.
 
-1. 사용자의 질문(question)은 API Gateway를 통해 Lambda에 https POST 방식으로 전달됩니다. Lambda는 JSON body에서 질문을 읽어옵니다. 이때 사용자의 이전 대화이력이 필요하므로 [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)에서 읽어옵니다. DynamoDB에서 대화이력을 로딩하는 작업은 처음 1회만 수행합니다.
+1. 사용자의 질문(question)은 API Gateway를 통해 Lambda에 Web Socket 방식으로 전달됩니다. Lambda는 JSON body에서 질문을 읽어옵니다. 이때 사용자의 이전 대화이력이 필요하므로 [Amazon DynamoDB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html)에서 읽어옵니다. DynamoDB에서 대화이력을 로딩하는 작업은 처음 1회만 수행합니다.
 2. 사용자의 대화이력을 반영하여 사용자와 Chatbot이 interactive한 대화를 할 수 있도록, 대화이력과 사용자의 질문으로 새로운 질문(Revised Question)을 생성하여야 합니다. LLM에 대화이력(chat history)를 Context로 제공하고 적절한 Prompt를 이용하면 새로운 질문을 생성할 수 있습니다.
 3. 새로운 질문(Revised question)으로 OpenSearch에 질문을 하여 관련된 문서(Relevant Documents)를 얻습니다. 
 4. 질문이 한국어인 경우에 영어 문서도 검색할 수 있도록 새로운 질문(Revised question)을 영어로 번역합니다.
