@@ -323,9 +323,18 @@ def traslation_to_korean(llm, msg):
 
 ### 실행결과
 
-작성중...
+"Retrieval Augmented Generation에 대해 설명해줘."로 입력하면, RAG에 문서가 없으므로 인터넷 검색을 통해 얻어온 결과를 보여줍니다. 
+![image](https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/b0a09358-569c-4a57-bf71-1bc25eb71a3f)
 
-대용량 언어 모델(LLM)의 특성상 실습의 답변은 상기 화면과 조금 다를 수 있습니다. 최초 실행시 접속에 실패하면 브라우저를 새로고침하고 질문을 재입력합니다. 또한, From에 Kendra 결과가 보여지지 않으면, index 작업이 끝나지 않은것이므로 수분후에 재시도 합니다.
+대용량 언어 모델(LLM)의 특성 및 구글 검색 결과의 차이에 의해 실습의 답변은 상기 화면과 조금 다를 수 있습니다. 
+
+RAG.pdf 파일을 다운로드한 후에 채팅화면 하단의 파일 아이콘을 선택하여 업로드 합니다.
+
+"Retrieval Augmented Generation에 대해 설명해줘."을 다시 입력하면, 영어로 된 RAG의 문서를 참조하여 한국어로 답변하였음을 알 수 있습니다.
+
+![image](https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/7b8bbf20-f5c9-464a-802a-cdd9ef61823e)
+
+
 
 ## 리소스 정리하기 
 
