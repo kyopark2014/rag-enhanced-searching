@@ -177,9 +177,7 @@ msg = readStreamMsg(connectionId, requestId, stream)
 
 ### 영어로 얻어진 문장을 한국어로 번역
 
-```text
-pip install google-api-python-client
-```
+
 
 ```python
 def traslation_to_english(llm, msg):
@@ -204,6 +202,10 @@ def traslation_to_english(llm, msg):
 ### Google Search API를 이용한 검색기능
 
 Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. 상세한 내용은 [Google Search API](./GoogleSearchAPI.md)에서 확인합니다. 여기서, assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다.
+
+```text
+pip install google-api-python-client
+```
 
 [api_key](https://developers.google.com/custom-search/docs/paid_element?hl=ko#api_key)에서 [키 가져오기] - [Select or create project]를 선택하여 Google API Key를 가져옵니다. 만약 기존 키가 없다면 새로 생성합니다.
 
