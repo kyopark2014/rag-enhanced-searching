@@ -40,9 +40,9 @@ RAG는 지식저장소에서 관련된문서들(Relevant documents)를 추출하
 
 <img src="https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/d9712d40-6e17-4768-a23e-70f4675629db" width="1000">
 
-## 한영 Dual Search
+## 한영 동시 검색
 
-revised question을 먼저 영어로 변환하여 Mult-RAG를 통해 조회합니다. 영어와 한글 문서를 모두 가지고 있는 Knowlege Store는 한국어 문서도 관련 문서로 제공할 수 있으므로, 영어로된 관련된 문서(Relevant Document)를 찾아서 한국어로 변환합니다. 이후, 한국어 검색으로 얻어진 결과에 추가합니다. 이렇게 되면 한국어로 검색했을때보다 2배의 관련된 문서들을 가지게 됩니다. 
+새로운 질문(revised question)을 먼저 영어로 변환하여 Mult-RAG를 통해 조회합니다. 영어와 한글 문서를 모두 가지고 있는 지식 저장소(Knowlege Store)는 한국어 문서도 관련 문서로 제공할 수 있으므로, 영어로된 관련된 문서(Relevant Document)를 찾아서 한국어로 변환합니다. 이후, 한국어 검색으로 얻어진 결과에 추가합니다. 이렇게 되면 한국어로 검색했을때보다 2배의 관련된 문서들을 가지게 됩니다. 
 
 ```python
 translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
@@ -106,7 +106,7 @@ def translate_process_from_relevent_doc(conn, llm, doc):
 
 결과적으로 4배의 속도 향상이 있었습니다. (추후 결과를 수치로 제시할것) 
 
-관련된 문장의 숫자가 늘어났으므로 context로 활용할 문서를 추출합니다. 아래의 priority_search()는 Faiss의 similarity search를 이용하여 관련문서를 reranking하는 동작을 수행합니다. 
+관련된 문장의 숫자가 늘어났으므로 context로 활용할 문서를 추출합니다. 아래의 priority_search()는 Faiss의 유사성 검색(similarity search)를 이용하여 관련문서를 reranking하는 동작을 수행합니다. 
 
 ```python
 selected_relevant_docs = []
