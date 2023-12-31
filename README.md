@@ -334,7 +334,7 @@ def traslation_to_korean(llm, msg):
 
 [RAG.pdf](./contents/RAG.pdf) 파일을 다운로드한 후에 채팅화면 하단의 파일 아이콘을 선택하여 업로드 합니다. "Retrieval Augmented Generation에 대해 설명해줘."을 다시 입력하면, 영어로 된 RAG의 문서를 참조하여 한국어로 답변하였음을 알 수 있습니다.
 
-![image](https://github.com/kyopark2014/rag-enhanced-searching/assets/52392004/7b8bbf20-f5c9-464a-802a-cdd9ef61823e)
+![image](./pictures/result.png)
 
 
 
