@@ -113,7 +113,6 @@ def translate_relevant_documents_using_parallel_processing(docs):
 def translate_process_from_relevent_doc(conn, llm, doc):
     translated_excerpt = traslation_to_korean(llm=llm, msg=doc['metadata']['excerpt'])
 
-    # doc['metadata']['excerpt'] = translated_excerpt
     doc['metadata']['translated_excerpt'] = translated_excerpt
 
     conn.send(doc)
