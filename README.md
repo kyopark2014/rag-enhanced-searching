@@ -40,7 +40,7 @@ RAG는 지식 저장소에서 추출한 관련된 문서들(Relevant documents)�
 
 ## 한영 동시 검색
 
-새로운 질문(revised question)을 영어로 변환한 후에, 번역된 새로운 질문(translated_revised_question)을 이용하여 RAG의 지식저장소의 관련된 문서(Relevant Documents)을 조회합니다. 이후, 영어로된 관련된 문서(Relevant Document)가 있으면, 한국어로 변역한 후에 한국어 검색으로 얻어진 결과(relevant_docs)에 추가합니다. 상세한 내용은 [lambda(chat)](./lambda-chat-ws/lambda_function.py)
+새로운 질문(revised question)을 영어로 변환한 후에, 번역된 새로운 질문(translated_revised_question)을 이용하여 RAG의 지식저장소의 관련된 문서(Relevant Documents)을 조회합니다. 이후, 영어로된 관련된 문서(Relevant Document)가 있으면, 한국어로 변역한 후에 한국어 검색으로 얻어진 결과(relevant_docs)에 추가합니다. 상세한 내용은 [lambda(chat)](./lambda-chat-ws/lambda_function.py)를 참조합니다.
 
 ```python
 translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
