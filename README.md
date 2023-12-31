@@ -203,7 +203,7 @@ def readStreamMsg(connectionId, requestId, stream):
 
 ### Google Search API를 이용한 검색기능
 
-Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. Google Search API를 사용하기 위해서는 아래와 같이 클라이언트를 설치하여야 합니다. 상세한 내용은 [lambda(chat)](./lambda-chat-ws/lambda_function.py)을 참조합니다.
+Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. Google Search API를 사용하기 위해서는 아래와 같이 클라이언트를 설치하여야 합니다. 
 
 ```text
 pip install google-api-python-client
@@ -228,7 +228,7 @@ const googleApiSecret = new secretsmanager.Secret(this, `google-api-secret-for-$
 googleApiSecret.grantRead(roleLambdaWebsocket) 
 ```
 
-Google Search API는 [googleapiclient.discovery](https://googleapis.github.io/google-api-python-client/docs/epy/googleapiclient.discovery-module.html)로 새로운 질문(revised question)을 전달하고 아래와 같이 결과를 추출합니다. 이때, assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다.
+Google Search API는 [googleapiclient.discovery](https://googleapis.github.io/google-api-python-client/docs/epy/googleapiclient.discovery-module.html)로 새로운 질문(revised question)을 전달하고 아래와 같이 결과를 추출합니다. 이때, assessed_score는 priority search시 FAISS의 Score로 업데이트 됩니다. 상세한 내용은 [lambda(chat)](./lambda-chat-ws/lambda_function.py)을 참조합니다.
 
 
 ```python
