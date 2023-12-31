@@ -203,7 +203,7 @@ def readStreamMsg(connectionId, requestId, stream):
 
 ### Google Search API를 이용한 검색기능
 
-Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. Google Search API를 사용하기 위해서는 아래와 같이 클라이언트를 설치하여야 합니다. 상세한 내용은 [lambda(chat)](./lambda-chat-ws/lambda_function.py)
+Multi-RAG로 검색하여 Relevant Document가 없는 경우에 Google API를 이용해 검색한 결과를 RAG에서 사용합니다. Google Search API를 사용하기 위해서는 아래와 같이 클라이언트를 설치하여야 합니다. 상세한 내용은 [lambda(chat)](./lambda-chat-ws/lambda_function.py)을 참조합니다.
 
 ```text
 pip install google-api-python-client
