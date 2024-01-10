@@ -28,7 +28,7 @@ const opensearch_passwd = "Wifi1234!";
 const enableReference = 'true';
 let opensearch_url = "";
 const numberOfRelevantDocs = '4';
-const allowDualSearching='false'
+const allowDualSearching='true'
 
 const claude_instance = JSON.stringify([
   {

@@ -51,6 +51,7 @@ speech_generation = True
 history_length = 0
 token_counter_history = 0
 allowDualSearching = os.environ.get('allowDualSearching')
+allowInternetSearching = 'false'
 
 # google search api
 googleApiSecret = os.environ.get('googleApiSecret')
@@ -790,7 +791,7 @@ def get_answer_using_RAG(llm, text, conv_type, connectionId, requestId, bedrock_
         selected_relevant_docs = priority_search(revised_question, relevant_docs, bedrock_embeddings)
         print('selected_relevant_docs: ', json.dumps(selected_relevant_docs))
 
-    if len(selected_relevant_docs)==0:
+    if len(selected_relevant_docs)==0 and allowInternetSearching=='true':
         print('No relevant document! So use google api')            
         api_key = google_api_key
         cse_id = google_cse_id 
@@ -943,7 +944,7 @@ def getResponse(connectionId, jsonBody):
     print('Conversation Type: ', conv_type)
 
     global vectorstore_opensearch, enableReference
-    global map_chain, map_chat, memory_chat, memory_chain, isReady, selected_LLM, allowDualSearching
+    global map_chain, map_chat, memory_chat, memory_chain, isReady, selected_LLM, allowDualSearching, allowInternetSearching
 
     # Multi-LLM
     profile = profile_of_LLMs[selected_LLM]
@@ -1054,6 +1055,12 @@ def getResponse(connectionId, jsonBody):
             elif text == 'disableDualSearching':
                 allowDualSearching = 'false'
                 msg  = "Translated question is disabled"
+            elif text == 'enableInternetSearching':
+                allowInternetSearching = 'true'
+                msg  = "Internet Search is enabled"
+            elif text == 'disableInternetSearching':
+                allowInternetSearching = 'false'
+                msg  = "Internet Search is disabled"
 
             elif text == 'clearMemory':
                 memory_chain.clear()
