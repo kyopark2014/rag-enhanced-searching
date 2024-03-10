@@ -43,7 +43,7 @@ RAG는 지식 저장소에서 추출한 관련된 문서들(Relevant documents)�
 새로운 질문(revised question)을 영어로 변환한 후에, 번역된 새로운 질문(translated_revised_question)을 이용하여 RAG의 지식저장소의 관련된 문서(Relevant Documents)을 조회합니다. 이후, 영어로된 관련된 문서(Relevant Document)가 있으면, 한국어로 변역한 후에 한국어 검색으로 얻어진 결과(relevant_docs)에 추가합니다. 상세한 내용은 [lambda(chat)](./lambda-chat-ws/lambda_function.py)를 참조합니다.
 
 ```python
-translated_revised_question = traslation_to_english(llm=llm, msg=revised_question)
+translated_revised_question = translate_text(chat, revised_question)
 
 relevant_docs_using_translated_question = retrieve_from_vectorstore(query=translated_revised_question, top_k=4, rag_type=rag_type)
             
@@ -59,23 +59,38 @@ if len(relevant_docs_using_translated_question)>=1:
     for i, doc in enumerate(translated_docs):
         relevant_docs.append(doc)
 
-def traslation_to_english(llm, msg):
-    PROMPT = """\n\nHuman: 다음의 <article>를 English로 번역하세요. 머리말은 건너뛰고 본론으로 바로 들어가주세요. 또한 결과는 <result> tag를 붙여주세요.
-
-    <article>
-    {input}
-    </article>
+def translate_text(chat, text):
+    system = (
+        "You are a helpful assistant that translates {input_language} to {output_language} in <article> tags. Put it in <result> tags."
+    )
+    human = "<article>{text}</article>"
+    
+    prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
+    
+    if isKorean(text)==False :
+        input_language = "English"
+        output_language = "Korean"
+    else:
+        input_language = "Korean"
+        output_language = "English"
                         
-    Assistant:"""
-
+    chain = prompt | chat    
     try: 
-        translated_msg = llm(PROMPT.format(input=msg))
+        result = chain.invoke(
+            {
+                "input_language": input_language,
+                "output_language": output_language,
+                "text": text,
+            }
+        )
+        
+        msg = result.content
     except Exception:
         err_msg = traceback.format_exc()
-        print('error message: ', err_msg)        
-        raise Exception ("Not able to translate the message")
-    
-    return translated_msg[translated_msg.find('<result>')+9:len(translated_msg)-10]
+        print('error message: ', err_msg)                    
+        raise Exception ("Not able to request to LLM")
+
+    return msg[msg.find('<result>')+8:len(msg)-9] # remove <result> tag
 ```
 
 영어로된 관련문서를 번역할때의 지연시간을 줄이기 위해 아래와 같이 multi thread를 이용합니다. 아래에서는 4개의 Multi-Region Profile을 활용하여 4개의 LLM으로 RAG 문서를 한국어로 번역합니다. 이를 위해, 영어로 관련문서 리스트를 추출하고, 각 리전의 LLM에 병렬로 번역을 요청합니다.
@@ -90,8 +105,8 @@ def translate_relevant_documents_using_parallel_processing(docs):
         parent_conn, child_conn = Pipe()
         parent_connections.append(parent_conn)
             
-        llm = get_llm(profile_of_LLMs, selected_LLM)
-        process = Process(target=translate_process_from_relevent_doc, args=(child_conn, llm, doc))            
+        chat = get_chat(profile_of_LLMs, selected_LLM)
+        process = Process(target=translate_process_from_relevent_doc, args=(child_conn, chat, doc))            
         processes.append(process)
 
         selected_LLM = selected_LLM + 1
@@ -110,8 +125,8 @@ def translate_relevant_documents_using_parallel_processing(docs):
     
     return relevant_docs
 
-def translate_process_from_relevent_doc(conn, llm, doc):
-    translated_excerpt = traslation_to_korean(llm=llm, msg=doc['metadata']['excerpt'])
+def translate_process_from_relevent_doc(conn, chat, doc):
+    translated_excerpt = translate_text(chat=chat, msg=doc['metadata']['excerpt'])
 
     doc['metadata']['translated_excerpt'] = translated_excerpt
 
@@ -180,15 +195,56 @@ for document in selected_relevant_docs:
     content = document['metadata']['excerpt']
 
 relevant_context = relevant_context + content + "\n\n"
-print('relevant_context: ', relevant_context)
 
-stream = llm(PROMPT.format(context = relevant_context, question = revised_question))
-msg = readStreamMsg(connectionId, requestId, stream)
+msg = query_using_RAG_context(connectionId, requestId, chat, relevant_context, revised_question)
+
+def query_using_RAG_context(connectionId, requestId, chat, context, revised_question):    
+    if isKorean(revised_question)==True:
+        system = (
+            """다음의 <context> tag안의 참고자료를 이용하여 상황에 맞는 구체적인 세부 정보를 충분히 제공합니다. Assistant의 이름은 서연이고, 모르는 질문을 받으면 솔직히 모른다고 말합니다.
+            
+            <context>
+            {context}
+            </context>"""
+        )
+    else: 
+        system = (
+            """Here is pieces of context, contained in <context> tags. Provide a concise answer to the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
+            
+            <context>
+            {context}
+            </context>"""
+        )
+    
+    human = "{input}"
+    
+    prompt = ChatPromptTemplate.from_messages([("system", system), ("human", human)])
+                   
+    chain = prompt | chat    
+    try: 
+        isTyping(connectionId, requestId)  
+        stream = chain.invoke(
+            {
+                "context": context,
+                "input": revised_question,
+            }
+        )
+        msg = readStreamMsg(connectionId, requestId, stream.content)    
+        
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)        
+            
+        sendErrorMessage(connectionId, requestId, err_msg)    
+        raise Exception ("Not able to request to LLM")
+
+    return msg
 
 def readStreamMsg(connectionId, requestId, stream):
     msg = ""
     if stream:
         for event in stream:
+            #print('event: ', event)
             msg = msg + event
 
             result = {
@@ -197,7 +253,7 @@ def readStreamMsg(connectionId, requestId, stream):
                 'status': 'proceeding'
             }
             sendMessage(connectionId, result)
-    return msg         
+    return msg
 ```
 
 
@@ -269,46 +325,6 @@ try:
         relevant_docs.append(doc_info)
 ```
 
-
-### 영어로 질문시 한글 결과를 같이 보여주기
-
-[lambda(chat)](./lambda-chat-ws/lambda_function.py)와 같이 결과가 한국어/영어인 것을 확인하여, 한국어가 아니라면 LLM을 통해 영어로 번역을 수행합니다. 결과는 영어와 함께 한국어 번역을 보여줍니다.
-
-```python
-if isKorean(msg)==False:
-  translated_msg = traslation_to_korean(llm, msg)
-
-msg = msg+'\n[한국어]\n'+translated_msg
-
-def isKorean(text):
-    pattern_hangul = re.compile('[\u3131-\u3163\uac00-\ud7a3]+')
-    word_kor = pattern_hangul.search(str(text))
-
-    if word_kor and word_kor != 'None':
-        return True
-    else:
-        return False
-
-def traslation_to_korean(llm, msg):
-    PROMPT = """\n\nHuman: Here is an article, contained in <article> tags. Translate the article to Korean. Put it in <result> tags.
-            
-    <article>
-    {input}
-    </article>
-                        
-    Assistant:"""
-
-    try: 
-        translated_msg = llm(PROMPT.format(input=msg))
-    except Exception:
-        err_msg = traceback.format_exc()
-        print('error message: ', err_msg)        
-        raise Exception ("Not able to translate the message")
-    
-    msg = translated_msg[translated_msg.find('<result>')+9:len(translated_msg)-10]
-    
-    return msg.replace("\n"," ")
-```
 
 ### AWS CDK로 인프라 구현하기
 
