@@ -30,7 +30,22 @@ let opensearch_url = "";
 const numberOfRelevantDocs = '4';
 const allowDualSearching='true'
 
-const claude_instance = JSON.stringify([
+const claude3_sonnet = [
+  {
+    "bedrock_region": "us-west-2", // Oregon
+    "model_type": "claude3",
+    "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",   
+    "maxOutputTokens": "8196"
+  },
+  {
+    "bedrock_region": "us-east-1", // N.Virginia
+    "model_type": "claude3",
+    "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
+    "maxOutputTokens": "8196"
+  }
+];
+
+const claude_instant = JSON.stringify([
   {
     "bedrock_region": "us-west-2", // Oregon
     "model_type": "claude",
@@ -57,7 +72,7 @@ const claude_instance = JSON.stringify([
     },
 ]);
 
-const claude_basic = JSON.stringify([
+const claude2 = JSON.stringify([
   {
     "bedrock_region": "us-west-2", // Oregon
     "model_type": "claude",
@@ -72,7 +87,7 @@ const claude_basic = JSON.stringify([
   }
 ]);
 
-const profile_of_LLMs = claude_instance;
+const profile_of_LLMs = claude3_sonnet;
 
 export class CdkRagEnhancedSearchingStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -525,7 +540,7 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
         path: 'https://'+distribution.domainName+'/',   
         roleArn: roleLambdaWebsocket.roleArn,
         numberOfRelevantDocs: numberOfRelevantDocs,
-        profile_of_LLMs:profile_of_LLMs,
+        profile_of_LLMs: JSON.stringify(profile_of_LLMs),
         googleApiSecret: googleApiSecret.secretName,
         allowDualSearching: allowDualSearching
       }
