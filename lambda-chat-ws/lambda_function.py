@@ -56,8 +56,8 @@ speech_generation = True
 history_length = 0
 token_counter_history = 0
 allowDualSearching = os.environ.get('allowDualSearching')
-allowInternetSearching = 'false'
-
+allowInternetSearching = os.environ.get('allowInternetSearching')
+ 
 # google search api
 googleApiSecret = os.environ.get('googleApiSecret')
 secretsmanager = boto3.client('secretsmanager')
