@@ -1136,7 +1136,7 @@ def getResponse(connectionId, jsonBody):
                     contexts.append(doc.page_content)
                 print('contexts: ', contexts)
 
-                msg = get_summary(llm, contexts)
+                msg = get_summary(chat, contexts)
             else:
                 msg = "uploaded file: "+object
                                 
