@@ -1165,7 +1165,7 @@ def getResponse(connectionId, jsonBody):
         print("total run time(sec): ", elapsed_time)
 
         if isKorean(msg)==False and conv_type=='qa':
-            translated_msg = translate_text(chat, msg)
+            translated_msg = translate_text(chat=chat, text=msg)
             print('translated_msg: ', translated_msg)
 
             msg = msg+'\n[한국어]\n'+translated_msg
