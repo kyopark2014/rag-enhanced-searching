@@ -1022,7 +1022,7 @@ def getResponse(connectionId, jsonBody):
     # rag sources
     if conv_type == 'qa':
         vectorstore_opensearch = OpenSearchVectorSearch(
-            index_name = "rag-index-*", # all
+            index_name = "idx-rag*", # all
             is_aoss = False,
             ef_search = 1024, # 512(default)
             m=48,
