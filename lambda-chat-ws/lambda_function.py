@@ -267,14 +267,35 @@ def delete_index_if_exist(index_name):
     else:
         print('no index: ', index_name)
 
-def store_document_for_opensearch(bedrock_embedding, docs, userId, documentId):
-    index_name = "rag-index-"+documentId
-    print('index_name: ', index_name)
+def delete_document_if_exist(vectorstore, metadata_key):
+    try: 
+        s3r = boto3.resource("s3")
+        bucket = s3r.Bucket(s3_bucket)
+        objs = list(bucket.objects.filter(Prefix=metadata_key))
+        print('objs: ', objs)
+        
+        if(len(objs)>0):
+            doc = s3r.Object(s3_bucket, metadata_key)
+            meta = doc.get()['Body'].read().decode('utf-8')
+            print('meta: ', meta)
+            
+            ids = json.loads(meta)['ids']
+            print('ids: ', ids)
+            
+            result = vectorstore.delete(ids)
+            print('result: ', result)        
+        else:
+            print('no meta file: ', metadata_key)
+            
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)        
+        raise Exception ("Not able to create meta file")
     
-    delete_index_if_exist(index_name)
-
-    try:
-        new_vectorstore = OpenSearchVectorSearch(
+def store_document_for_opensearch(bedrock_embedding, docs, key):
+    index_name = 'idx-rag'
+    
+    vectorstore = OpenSearchVectorSearch(
             index_name=index_name,  
             is_aoss = False,
             #engine="faiss",  # default: nmslib
@@ -282,7 +303,15 @@ def store_document_for_opensearch(bedrock_embedding, docs, userId, documentId):
             opensearch_url = opensearch_url,
             http_auth=(opensearch_account, opensearch_passwd),
         )
-        response = new_vectorstore.add_documents(docs)
+    
+    objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
+    print('objectName: ', objectName)    
+    metadata_key = meta_prefix+objectName+'.metadata.json'
+    print('meta file name: ', metadata_key)    
+    delete_document_if_exist(vectorstore, metadata_key)
+    
+    try:
+        response = vectorstore.add_documents(docs)
         print('response of adding documents: ', response)
     except Exception:
         err_msg = traceback.format_exc()
@@ -290,6 +319,8 @@ def store_document_for_opensearch(bedrock_embedding, docs, userId, documentId):
         raise Exception ("Not able to request to LLM")
 
     print('uploaded into opensearch')
+    
+    return response
     
 # load documents from s3 for pdf and txt
 def load_document(file_type, s3_file_name):
@@ -915,6 +946,39 @@ def translate_text(chat, text):
 
     return msg[msg.find('<result>')+8:len(msg)-9] # remove <result> tag
 
+def create_metadata(bucket, key, meta_prefix, s3_prefix, uri, category, documentId, ids):
+    title = key
+    timestamp = int(time.time())
+
+    metadata = {
+        "Attributes": {
+            "_category": category,
+            "_source_uri": uri,
+            "_version": str(timestamp),
+            "_language_code": "ko"
+        },
+        "Title": title,
+        "DocumentId": documentId,      
+        "ids": ids  
+    }
+    print('metadata: ', metadata)
+    
+    #objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)]).upper()
+    objectName = (key[key.find(s3_prefix)+len(s3_prefix)+1:len(key)])
+    print('objectName: ', objectName)
+
+    client = boto3.client('s3')
+    try: 
+        client.put_object(
+            Body=json.dumps(metadata), 
+            Bucket=bucket, 
+            Key=meta_prefix+objectName+'.metadata.json' 
+        )
+    except Exception:
+        err_msg = traceback.format_exc()
+        print('error message: ', err_msg)        
+        raise Exception ("Not able to create meta file")
+
 def getResponse(connectionId, jsonBody):
     userId  = jsonBody['user_id']
     # print('userId: ', userId)
@@ -1039,6 +1103,7 @@ def getResponse(connectionId, jsonBody):
             file_type = object[object.rfind('.')+1:len(object)]            
             print('file_type: ', file_type)
 
+            ids = []
             if file_type == 'csv':
                 docs = load_csv_document(path, doc_prefix, object)
                 contexts = []
@@ -1046,7 +1111,7 @@ def getResponse(connectionId, jsonBody):
                     contexts.append(doc.page_content)
                 print('contexts: ', contexts)
 
-                msg = get_summary(llm, contexts)
+                msg = get_summary(chat, contexts)
 
             elif file_type == 'pdf' or file_type == 'txt' or file_type == 'pptx' or file_type == 'docx':
                 texts = load_document(file_type, object)
@@ -1087,9 +1152,11 @@ def getResponse(connectionId, jsonBody):
                 print('documentId: ', documentId)
 
                 if file_type == 'pdf' or file_type == 'txt' or file_type == 'csv' or file_type == 'pptx' or file_type == 'docx':
-                    store_document_for_opensearch(bedrock_embedding, docs, userId, documentId)
-
+                    ids = store_document_for_opensearch(bedrock_embedding, docs, key)
+                
                 print('processing time: ', str(time.time() - start_time))
+            
+            create_metadata(bucket=s3_bucket, key=key, meta_prefix=meta_prefix, s3_prefix=s3_prefix, uri=path+parse.quote(key), category=category, documentId=documentId, ids=ids)
                         
         sendResultMessage(connectionId, requestId, msg+reference)
         # print('msg+reference: ', msg+reference)
