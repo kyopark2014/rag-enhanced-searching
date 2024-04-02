@@ -17,11 +17,12 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 
 const region = process.env.CDK_DEFAULT_REGION;    
+const accountId = process.env.CDK_DEFAULT_ACCOUNT
 const debug = false;
 const stage = 'dev';
 const s3_prefix = 'docs';
 const projectName = `rag-enhanced-searching`; 
-// const bucketName = `storage-for-${projectName}-${region}`; 
+const bucketName = `storage-for-${projectName}-${accountId}-${region}`; 
 
 const opensearch_account = "admin";
 const opensearch_passwd = "Wifi1234!";
@@ -96,7 +97,7 @@ export class CdkRagEnhancedSearchingStack extends cdk.Stack {
 
     // s3 
     const s3Bucket = new s3.Bucket(this, `storage-${projectName}`,{
-      // bucketName: bucketName,
+      bucketName: bucketName,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
