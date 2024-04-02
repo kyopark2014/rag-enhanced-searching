@@ -747,7 +747,7 @@ def retrieve_from_vectorstore(query, top_k, rag_type):
     return relevant_docs
 
 def translate_process_from_relevent_doc(conn, chat, doc):
-    translated_excerpt = translate_text(chat=chat, msg=doc['metadata']['excerpt'])
+    translated_excerpt = translate_text(chat, doc['metadata']['excerpt'])
 
     # doc['metadata']['excerpt'] = translated_excerpt
     doc['metadata']['translated_excerpt'] = translated_excerpt
@@ -1165,7 +1165,7 @@ def getResponse(connectionId, jsonBody):
         print("total run time(sec): ", elapsed_time)
 
         if isKorean(msg)==False and conv_type=='qa':
-            translated_msg = translate_text(chat=chat, text=msg)
+            translated_msg = translate_text(chat, msg)
             print('translated_msg: ', translated_msg)
 
             msg = msg+'\n[한국어]\n'+translated_msg
