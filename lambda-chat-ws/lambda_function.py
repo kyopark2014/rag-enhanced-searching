@@ -1153,7 +1153,7 @@ def getResponse(connectionId, jsonBody):
                 
                 print('processing time: ', str(time.time() - start_time))
             
-            create_metadata(bucket=s3_bucket, key=key, meta_prefix=meta_prefix, s3_prefix=s3_prefix, uri=path+parse.quote(key), category=category, documentId=documentId, ids=ids)
+                create_metadata(bucket=s3_bucket, key=key, meta_prefix=meta_prefix, s3_prefix=s3_prefix, uri=path+parse.quote(key), category=category, documentId=documentId, ids=ids)
                         
         sendResultMessage(connectionId, requestId, msg+reference)
         # print('msg+reference: ', msg+reference)
