@@ -26,11 +26,10 @@ from langchain_community.vectorstores.faiss import FAISS
 from langchain_community.vectorstores.opensearch_vector_search import OpenSearchVectorSearch
 from langchain_community.embeddings import BedrockEmbeddings
 from langchain_community.docstore.document import Document
-from langchain_community.llms.bedrock import Bedrock
 
-from langchain_community.chat_models import BedrockChat
 from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_aws import ChatBedrock
 
 s3 = boto3.client('s3')
 s3_bucket = os.environ.get('s3_bucket') # bucket name
@@ -112,13 +111,11 @@ def get_chat(profile_of_LLMs, selected_LLM):
     }
     # print('parameters: ', parameters)
 
-    chat = BedrockChat(
+    chat = ChatBedrock(   
         model_id=modelId,
         client=boto3_bedrock, 
-        streaming=True,
-        callbacks=[StreamingStdOutCallbackHandler()],
         model_kwargs=parameters,
-    )        
+    )       
     
     return chat
 
